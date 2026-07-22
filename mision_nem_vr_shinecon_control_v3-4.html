@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#071b21">
+<title>Misión NEM VR · VR Shinecon SC-G12</title>
+<style>
+:root{
+  --sky1:#74c8df;--sky2:#d8eff3;--ground1:#88bd69;--ground2:#416d45;
+  --ink:#f6fffd;--aqua:#29d3c2;--gold:#ffd166;--danger:#ff6b6b;--ok:#55d98b;
+  --panel:rgba(5,24,30,.88);--line:rgba(255,255,255,.22);
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#041319;color:var(--ink);
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;touch-action:none;user-select:none}
+button{font:inherit}
+#setup{
+  position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;
+  background:
+    radial-gradient(circle at 15% 15%,rgba(41,211,194,.18),transparent 30%),
+    radial-gradient(circle at 85% 5%,rgba(255,209,102,.16),transparent 28%),
+    linear-gradient(145deg,#061b23,#0c3039);
+}
+.setup-card{width:min(780px,100%);max-height:95vh;overflow:auto;background:rgba(5,24,30,.91);
+  border:1px solid var(--line);border-radius:26px;padding:28px;box-shadow:0 30px 90px rgba(0,0,0,.45)}
+.logo{display:inline-grid;place-items:center;width:64px;height:64px;border-radius:20px;
+  background:linear-gradient(135deg,#0f807e,#29d3c2);font-weight:1000;font-size:1.15rem;box-shadow:0 12px 30px rgba(41,211,194,.2)}
+h1{font-size:clamp(2rem,5vw,4.2rem);letter-spacing:-.05em;line-height:.98;margin:18px 0 14px}
+h1 span{color:var(--aqua)}
+.setup-card p{color:#c6dfdc;line-height:1.55;margin:10px 0}
+.instructions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}
+.inst{border:1px solid var(--line);border-radius:16px;padding:14px;background:rgba(255,255,255,.05)}
+.inst b{display:block;color:var(--gold);font-size:1.35rem;margin-bottom:6px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.btn{border:0;border-radius:14px;padding:13px 18px;font-weight:900;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#0f807e,#29d3c2);color:#031719}
+.btn-secondary{background:transparent;border:2px solid var(--aqua);color:var(--aqua)}
+.compat{margin-top:18px;padding:12px 14px;border-left:4px solid var(--gold);background:rgba(255,209,102,.09);border-radius:10px;font-size:.9rem}
+.controller-box{
+  margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;
+  background:rgba(255,255,255,.05);display:grid;gap:5px
+}
+.controller-box strong{color:var(--aqua)}
+.controller-box small{color:#b9d9d4;line-height:1.4}
+.controller-led{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--danger);margin-right:7px}
+.controller-led.on{background:var(--ok);box-shadow:0 0 12px rgba(85,217,139,.7)}
+.control-mode .reticle{background:rgba(41,211,194,.18);border:2px solid var(--aqua)}
+.control-mode .reticle:before{content:"●";color:var(--aqua)}
+.control-mode .reticle:after{border-color:var(--aqua)}
+#vrRoot{position:fixed;inset:0;display:none;background:#000}
+#vrRoot.stereo{display:grid;grid-template-columns:1fr 1fr}
+#vrRoot.mono{display:block}
+.eye{position:relative;overflow:hidden;background:
+  linear-gradient(to bottom,var(--sky1) 0 55%,var(--ground1) 55% 77%,var(--ground2) 77% 100%);
+  isolation:isolate}
+.mono .eye.right{display:none}
+.mono .eye.left{width:100%;height:100%}
+.eye:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:30;
+  background:radial-gradient(ellipse at center,transparent 48%,rgba(0,0,0,.18) 72%,rgba(0,0,0,.67) 100%)
+}
+.stereo .eye.left{border-right:2px solid #000}
+.scene-layer{position:absolute;inset:0;overflow:hidden}
+.hill{position:absolute;bottom:20%;width:55%;height:25%;border-radius:50% 50% 0 0;background:#62925c;opacity:.8}
+.h1{left:-14%}.h2{right:-15%;transform:scale(.8)}
+.cloud{position:absolute;font-size:clamp(2rem,7vw,5rem);opacity:.75;filter:drop-shadow(0 7px 5px rgba(0,0,0,.12))}
+.c1{top:10%;left:8%}.c2{top:17%;right:8%;transform:scale(.7)}
+.school-bg{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);font-size:clamp(5rem,18vw,12rem);
+  filter:drop-shadow(0 16px 10px rgba(0,0,0,.25));opacity:.92}
+.improved .eye{background:linear-gradient(to bottom,#65cfea 0 55%,#83cf70 55% 77%,#326a3d 77% 100%)}
+.improved .school-bg{filter:drop-shadow(0 16px 10px rgba(0,0,0,.2)) saturate(1.2)}
+.hud{position:absolute;left:4%;right:4%;top:4%;z-index:12;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hud-card{background:rgba(4,19,25,.73);border:1px solid var(--line);border-radius:12px;padding:7px 9px;
+  backdrop-filter:blur(5px);font-size:clamp(.55rem,1.55vw,.83rem);font-weight:850}
+.level{color:var(--gold)}
+.score{color:var(--aqua)}
+.message{position:absolute;left:8%;right:8%;top:17%;z-index:14;background:var(--panel);border:1px solid var(--line);
+  border-radius:18px;padding:clamp(12px,2.8vw,21px);box-shadow:0 14px 40px rgba(0,0,0,.35);text-align:center}
+.message h2{font-size:clamp(1rem,3vw,1.7rem);margin:0 0 8px;color:var(--gold)}
+.message p{font-size:clamp(.72rem,1.95vw,1rem);line-height:1.42;margin:0;color:#e1f2ef}
+.message small{display:block;margin-top:8px;color:#9fc5c0;font-size:clamp(.56rem,1.45vw,.78rem)}
+.world-target{position:absolute;z-index:10;transform:translate(-50%,-50%);width:min(38%,240px);min-width:125px;
+  padding:10px;border-radius:16px;text-align:center;background:rgba(5,24,30,.87);border:2px solid rgba(255,255,255,.28);
+  box-shadow:0 12px 30px rgba(0,0,0,.32);transition:opacity .12s,filter .12s,border-color .12s}
+.world-target.near{border-color:var(--gold);filter:brightness(1.15);box-shadow:0 0 0 3px rgba(255,209,102,.18),0 15px 35px rgba(0,0,0,.4)}
+.world-target.controller-selected{
+  border-color:var(--aqua);filter:brightness(1.2);
+  box-shadow:0 0 0 4px rgba(41,211,194,.28),0 15px 38px rgba(0,0,0,.45)
+}
+.world-target.done{border-color:var(--ok);background:rgba(5,63,47,.86)}
+.target-icon{font-size:clamp(1.7rem,5.3vw,3.1rem);line-height:1}
+.target-title{display:block;font-size:clamp(.72rem,2vw,1.03rem);font-weight:950;margin-top:4px}
+.target-sub{display:block;font-size:clamp(.56rem,1.5vw,.76rem);color:#b9d9d4;margin-top:3px}
+.reticle{position:absolute;left:50%;top:50%;width:38px;height:38px;transform:translate(-50%,-50%);z-index:40;border-radius:50%;
+  background:conic-gradient(var(--gold) var(--dwell,0%),rgba(255,255,255,.18) 0);
+  box-shadow:0 0 18px rgba(255,209,102,.35)}
+.reticle:after{content:"";position:absolute;inset:6px;border-radius:50%;background:rgba(2,14,18,.72);border:2px solid rgba(255,255,255,.85)}
+.reticle:before{content:"+";position:absolute;inset:0;display:grid;place-items:center;z-index:2;font-weight:1000;color:white;font-size:15px}
+.sensor{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);z-index:15;background:rgba(4,19,25,.7);border:1px solid var(--line);
+  border-radius:999px;padding:6px 10px;font-size:clamp(.5rem,1.35vw,.72rem);white-space:nowrap;color:#c4ded9}
+.indicators{position:absolute;left:5%;right:5%;bottom:12%;z-index:13;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.ind{background:rgba(4,19,25,.73);border:1px solid var(--line);border-radius:9px;padding:5px}
+.ind-top{display:flex;justify-content:space-between;font-size:clamp(.43rem,1.1vw,.61rem);font-weight:850}
+.bar{height:5px;background:rgba(255,255,255,.15);border-radius:9px;overflow:hidden;margin-top:4px}
+.bar span{display:block;height:100%;background:linear-gradient(90deg,#0f807e,#55d98b);border-radius:9px}
+.fade{animation:fade .35s ease}
+@keyframes fade{from{opacity:.15}to{opacity:1}}
+#rotateNotice{display:none;position:fixed;inset:0;z-index:200;background:#041319;color:white;place-items:center;text-align:center;padding:30px}
+#rotateNotice div{max-width:420px}#rotateNotice b{display:block;font-size:4rem;margin-bottom:16px}
+@media(orientation:portrait) and (max-width:900px){#rotateNotice{display:grid}}
+@media(max-width:700px){
+  .setup-card{padding:20px}.instructions{grid-template-columns:1fr}.inst{padding:10px}
+}
+</style>
+</head>
+<body>
+<section id="setup">
+  <div class="setup-card">
+    <div class="logo">NEM VR</div>
+    <h1>Misión NEM:<br><span>Transformando mi Comunidad</span></h1>
+    <p>
+      Experiencia inmersiva para visor móvil tipo <strong>VR Shinecon SC-G12</strong>.
+      El problema central es el desperdicio de agua en la Escuela Comunitaria “Horizontes”.
+    </p>
+    <div class="instructions">
+      <div class="inst"><b>1</b>Abre el archivo en el celular y colócalo horizontalmente.</div>
+      <div class="inst"><b>2</b>Pulsa “Entrar en VR”, permite el movimiento y coloca el teléfono en las gafas.</div>
+      <div class="inst"><b>3</b>Usa el joystick o la cruceta para cambiar de opción y pulsa A/OK para seleccionar.</div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="enterVr">Entrar en VR</button>
+      <button class="btn btn-secondary" id="enterMono">Probar sin gafas</button>
+      <button class="btn btn-secondary" id="reset">Borrar progreso</button>
+    </div>
+    <div class="controller-box">
+      <div><span class="controller-led" id="controllerLed"></span><strong id="controllerStatus">Control no detectado</strong></div>
+      <small id="controllerInput">Conecta el mando por Bluetooth y colócalo en modo GAME/Android. Después pulsa cualquier botón.</small>
+    </div>
+    <div class="compat">
+      <strong>Funciones:</strong> joystick/cruceta para navegar, A/OK para seleccionar y B/ESC para recentrar.
+      El control tiene prioridad; la mirada y el toque permanecen como respaldo.
+    </div>
+  </div>
+</section>
+
+<div id="vrRoot">
+  <div class="eye left" data-eye="-1"></div>
+  <div class="eye right" data-eye="1"></div>
+</div>
+
+<div id="rotateNotice"><div><b>↻</b><h2>Gira el celular</h2><p>La experiencia VR requiere orientación horizontal.</p></div></div>
+
+<script>
+(() => {
+"use strict";
+
+const STORAGE="nem-vr-scg12-controller-v3";
+const initial={
+  level:1,phase:"intro",score:0,visited:[],step:0,wrong:0,
+  indicators:{agua:28,participacion:30,aprendizaje:38,bienestar:42},
+  improved:false,steam:{roof:null,rain:null,eff:null,tank:null,components:null},
+  completed:false
+};
+let state=load();
+let vrMode=true, yaw=0, baseAlpha=null, sensorAlpha=null, sensorOn=false, manualOffset=0;
+let dragging=false,lastX=0,activeId=null,dwellStart=0,dwellPct=0,locked=false;
+let anchorKey="", anchorYaw=0;
+let introReady=false, feedback=null, feedbackTimer=null;
+
+// Entrada universal del control Bluetooth.
+let controllerActive=false;
+let controllerName="";
+let controllerTargetId=null;
+let controllerAxisLatch=0;
+let controllerButtonState={};
+let controllerLastInput=0;
+let controllerStatusTimer=null;
+
+const places=[
+ {id:"escuela",yaw:-66,icon:"🏫",title:"Escuela",person:"Mariana, estudiante",text:"En los sanitarios hay tres llaves que gotean todo el día.",evidence:"Tres fugas continuas en sanitarios."},
+ {id:"plaza",yaw:-40,icon:"⛲",title:"Plaza",person:"Don Ernesto, vecino",text:"La presión del agua disminuye entre las ocho y las once de la mañana.",evidence:"Baja presión en el horario de mayor consumo."},
+ {id:"salud",yaw:-14,icon:"🏥",title:"Centro de salud",person:"Dra. Salgado",text:"El suministro irregular provoca que algunas familias almacenen agua sin protección.",evidence:"El problema también afecta la salud comunitaria."},
+ {id:"parque",yaw:14,icon:"🌳",title:"Parque",person:"Lucía, madre de familia",text:"Los jardines escolares se riegan al mediodía, cuando se pierde más agua por evaporación.",evidence:"El horario de riego es ineficiente."},
+ {id:"mercado",yaw:40,icon:"🛒",title:"Mercado",person:"Óscar, comerciante",text:"Usar boquillas y cubetas redujo nuestro consumo sin afectar la limpieza.",evidence:"Existen prácticas locales que pueden adaptarse."},
+ {id:"biblioteca",yaw:66,icon:"📚",title:"Biblioteca",person:"Elena, bibliotecaria",text:"Los recibos muestran un aumento de 28 por ciento en tres meses.",evidence:"El consumo subió sin aumentar la matrícula."}
+];
+
+const questions={
+  1:[
+    {title:"Diagnóstico 1 de 3",q:"¿Cuál es el problema central?",opts:[
+      ["Falta de clases de ciencias","📖"],["Desperdicio de agua por fugas y prácticas ineficientes","💧"],["Ausencia total de agua","🚱"]],correct:1,
+      explain:"Las evidencias relacionan fugas, riego, limpieza y aumento del consumo.",delta:{agua:4,participacion:2,aprendizaje:6,bienestar:2}},
+    {title:"Diagnóstico 2 de 3",q:"¿Qué evidencia es más sólida?",opts:[
+      ["Una opinión aislada","💬"],["Recibos, observación y testimonios","📊"],["Una fotografía sin contexto","📷"]],correct:1,
+      explain:"La triangulación de fuentes permite un diagnóstico más confiable.",delta:{agua:2,participacion:3,aprendizaje:7,bienestar:1}},
+    {title:"Diagnóstico 3 de 3",q:"¿Qué principio de la NEM orienta la intervención?",opts:[
+      ["Aplicar una solución idéntica en todas las escuelas","📋"],["Vincular aprendizaje, contexto y participación","🤝"],["Resolverlo únicamente desde la dirección","🏢"]],correct:1,
+      explain:"La NEM parte del contexto y reconoce a la comunidad como participante.",delta:{agua:2,participacion:7,aprendizaje:5,bienestar:4}}
+  ],
+  2:[
+    {title:"ABPC · Problema",q:"¿Qué problemática debe priorizar el proyecto?",opts:[
+      ["Ruido alrededor de la escuela","🔊"],["Desperdicio de agua","💧"],["Falta de torneos deportivos","⚽"]],correct:1,
+      explain:"Es la necesidad respaldada por las evidencias comunitarias.",delta:{agua:5,participacion:2,aprendizaje:3,bienestar:1}},
+    {title:"ABPC · Objetivo",q:"Selecciona el objetivo mejor formulado.",opts:[
+      ["Cuidar el agua algún día","🗓️"],["Reducir 25% el consumo en ocho semanas","🎯"],["Comprar carteles","🪧"]],correct:1,
+      explain:"El objetivo define resultado, magnitud y periodo.",delta:{agua:7,participacion:3,aprendizaje:5,bienestar:2}},
+    {title:"ABPC · Equipo",q:"¿Quiénes deben integrar el proyecto?",opts:[
+      ["Solo la dirección","🏢"],["Estudiantes, docentes, familias, mantenimiento y comunidad","👥"],["Solo estudiantes con mejores calificaciones","🏅"]],correct:1,
+      explain:"La colaboración amplía conocimientos, responsabilidades e impacto.",delta:{agua:2,participacion:12,aprendizaje:4,bienestar:6}},
+    {title:"ABPC · Organización",q:"¿Cómo se distribuyen las responsabilidades?",opts:[
+      ["Una persona hace todo","1️⃣"],["Brigadas, responsables, calendario y evidencias","🗂️"],["Sin roles ni seguimiento","🎲"]],correct:1,
+      explain:"La corresponsabilidad necesita tareas claras y seguimiento.",delta:{agua:4,participacion:7,aprendizaje:5,bienestar:4}}
+  ],
+  3:[
+    {title:"ABP · Pregunta guía",q:"¿Qué pregunta permite investigar el problema?",opts:[
+      ["¿Quién tiene la culpa?","👉"],["¿Dónde, cuándo y por qué se desperdicia el agua?","🔎"],["¿Por qué nadie cuida nada?","😠"]],correct:1,
+      explain:"Una pregunta investigable evita prejuicios y orienta la búsqueda de datos.",delta:{agua:2,participacion:2,aprendizaje:8,bienestar:1}},
+    {title:"ABP · Fuentes",q:"¿Qué conjunto de fuentes conviene utilizar?",opts:[
+      ["Medidor, recibos, entrevistas y recorridos","📚"],["Solo videos de redes sociales","📱"],["Solo la opinión del docente","🗣️"]],correct:0,
+      explain:"Las fuentes diversas permiten comparar datos cuantitativos y cualitativos.",delta:{agua:4,participacion:4,aprendizaje:8,bienestar:1}},
+    {title:"ABP · Datos",q:"¿Dónde se concentra el mayor consumo?",opts:[
+      ["Sanitarios y bebederos","🚻"],["Biblioteca","📚"],["Cocina únicamente","🍽️"]],correct:0,
+      explain:"Sanitarios y bebederos concentran fugas y flujo continuo.",delta:{agua:8,participacion:1,aprendizaje:7,bienestar:2}},
+    {title:"ABP · Solución",q:"¿Qué solución responde mejor a los datos?",opts:[
+      ["Cerrar sanitarios","⛔"],["Reparar, ahorrar, ajustar horarios y monitorear","🛠️"],["Aplicar sanciones sin explicar","🧾"]],correct:1,
+      explain:"La solución actúa sobre infraestructura, hábitos y evaluación.",delta:{agua:12,participacion:5,aprendizaje:6,bienestar:7}}
+  ],
+  4:[
+    {title:"Aprendizaje Servicio · Acción directa",q:"¿Qué acción produce un beneficio inmediato?",opts:[
+      ["Reparar fugas e instalar dispositivos ahorradores","🔧"],["Cerrar sanitarios dos horas","🔒"],["Comprar adornos azules","🎨"]],correct:0,
+      explain:"La reparación atiende la causa sin limitar un servicio básico.",delta:{agua:17,participacion:3,aprendizaje:4,bienestar:7}},
+    {title:"Aprendizaje Servicio · Participación",q:"¿Cómo involucrar a los estudiantes?",opts:[
+      ["Campaña, brigadas de monitoreo y comunicación de datos","📣"],["Solo observar a los adultos","👀"],["Copiar definiciones sobre el agua","✍️"]],correct:0,
+      explain:"Los estudiantes investigan, actúan y comunican un servicio real.",delta:{agua:5,participacion:14,aprendizaje:9,bienestar:5}},
+    {title:"Aprendizaje Servicio · Comunidad",q:"¿Qué acción fortalece la continuidad?",opts:[
+      ["Taller práctico con familias y acuerdos de seguimiento","👨‍👩‍👧"],["Una ceremonia sin evaluación","🎤"],["Multas automáticas","🧾"]],correct:0,
+      explain:"Los acuerdos y capacidades compartidas sostienen el cambio.",delta:{agua:4,participacion:13,aprendizaje:6,bienestar:7}}
+  ],
+  5:[
+    {key:"roof",title:"STEAM · Área de captación",q:"Elige el techo con mayor captación viable.",opts:[
+      ["150 m²","📐"],["250 m²","📐"],["400 m²","📐"]],values:[150,250,400],correct:2,
+      explain:"Una mayor superficie permite captar más lluvia.",delta:{agua:2,participacion:1,aprendizaje:5,bienestar:1}},
+    {key:"rain",title:"STEAM · Escenario de lluvia",q:"Prueba el evento de diseño más favorable.",opts:[
+      ["15 mm","🌦️"],["30 mm","🌧️"],["45 mm","⛈️"]],values:[15,30,45],correct:2,
+      explain:"El volumen captado aumenta con los milímetros de lluvia.",delta:{agua:2,participacion:0,aprendizaje:5,bienestar:1}},
+    {key:"eff",title:"STEAM · Eficiencia",q:"Selecciona la eficiencia de un sistema bien diseñado.",opts:[
+      ["60%","⚙️"],["75%","⚙️"],["90%","⚙️"]],values:[.60,.75,.90],correct:2,
+      explain:"Filtros, conducción y mantenimiento elevan la eficiencia.",delta:{agua:3,participacion:0,aprendizaje:6,bienestar:1}},
+    {key:"tank",title:"STEAM · Almacenamiento",q:"¿Qué tanque evita perder la captación calculada?",opts:[
+      ["5,000 L","🛢️"],["10,000 L","🛢️"],["15,000 L","🛢️"]],values:[5000,10000,15000],correct:2,
+      explain:"El tanque debe ser suficiente para el volumen potencial.",delta:{agua:4,participacion:1,aprendizaje:5,bienestar:2}},
+    {key:"components",title:"STEAM · Seguridad",q:"¿Qué configuración completa el prototipo?",opts:[
+      ["Solo canaleta","➖"],["Canaleta y tanque","🔩"],["Filtro, primeras lluvias, tanque y rebosadero","🧰"]],values:["mínima","básica","completa"],correct:2,
+      explain:"El sistema completo protege la calidad del agua y la infraestructura.",delta:{agua:5,participacion:2,aprendizaje:7,bienestar:3}}
+  ]
+};
+
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function load(){try{return {...clone(initial),...JSON.parse(localStorage.getItem(STORAGE)||"{}")}}catch(e){return clone(initial)}}
+function save(){localStorage.setItem(STORAGE,JSON.stringify(state))}
+function norm(a){while(a>180)a-=360;while(a<-180)a+=360;return a}
+function clamp(v){return Math.max(0,Math.min(100,v))}
+function applyDelta(d){Object.keys(d).forEach(k=>state.indicators[k]=clamp(state.indicators[k]+d[k]))}
+function currentQuestions(){return questions[state.level]||[]}
+
+const root=document.getElementById("vrRoot");
+const setup=document.getElementById("setup");
+const controllerLed=document.getElementById("controllerLed");
+const controllerStatus=document.getElementById("controllerStatus");
+const controllerInput=document.getElementById("controllerInput");
+
+document.getElementById("enterVr").onclick=()=>start(true);
+document.getElementById("enterMono").onclick=()=>start(false);
+document.getElementById("reset").onclick=()=>{
+  if(confirm("¿Borrar todo el progreso?")){localStorage.removeItem(STORAGE);state=clone(initial);location.reload()}
+};
+
+async function start(stereo){
+  vrMode=stereo;
+  root.className=stereo?"stereo":"mono";
+  root.style.display=stereo?"grid":"block";
+  setup.style.display="none";
+  try{
+    if(document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+  }catch(e){}
+  try{
+    if(screen.orientation?.lock) await screen.orientation.lock("landscape");
+  }catch(e){}
+  await enableOrientation();
+  if(state.phase==="intro") showIntro();
+  render();
+  requestAnimationFrame(loop);
+}
+
+async function enableOrientation(){
+  try{
+    if(typeof DeviceOrientationEvent!=="undefined" &&
+       typeof DeviceOrientationEvent.requestPermission==="function"){
+      const res=await DeviceOrientationEvent.requestPermission();
+      sensorOn=res==="granted";
+    }else sensorOn=true;
+  }catch(e){sensorOn=false}
+  window.addEventListener("deviceorientation",e=>{
+    if(e.alpha==null)return;
+    sensorAlpha=e.alpha;
+    if(baseAlpha==null)baseAlpha=e.alpha;
+    sensorOn=true;
+  },true);
+}
+
+function showIntro(){
+  introReady=false;locked=true;
+  setTimeout(()=>{introReady=true;locked=false;state.phase=state.level===1?"explore":"questions";save();render()},4200);
+}
+
+function levelTitle(){
+  return {
+    1:"Nivel 1 · Explorando la comunidad",
+    2:"Nivel 2 · Proyecto Comunitario ABPC",
+    3:"Nivel 3 · Resolviendo Problemas ABP",
+    4:"Nivel 4 · Aprendizaje Servicio",
+    5:"Nivel 5 · Laboratorio STEAM"
+  }[state.level]||"Misión completada";
+}
+
+function introText(){
+  return {
+    1:["Explora la comunidad","Gira la cabeza y conversa con seis personajes. Cada testimonio aporta una evidencia para construir el diagnóstico."],
+    2:["Proyecto Comunitario ABPC","Convierte el diagnóstico en un objetivo, un equipo y una organización con responsabilidades claras."],
+    3:["Aprendizaje Basado en Problemas","Formula preguntas, investiga, analiza datos y selecciona una solución sustentada."],
+    4:["Aprendizaje Servicio","Implementa acciones que enseñan mientras producen un beneficio real para la comunidad."],
+    5:["Laboratorio STEAM","Diseña un sistema de captación de lluvia. Fórmula: área × lluvia × eficiencia."]
+  }[state.level];
+}
+
+function getTargets(){
+  if(locked||state.phase==="intro"||state.phase==="feedback"||state.phase==="dialog"||state.phase==="transition"||state.phase==="final")return[];
+  if(state.phase==="explore"){
+    return places.filter(p=>!state.visited.includes(p.id)).map(p=>({
+      id:"place-"+p.id,yaw:p.yaw,icon:p.icon,title:p.title,sub:"Fija la mirada",kind:"place",data:p
+    }));
+  }
+  if(state.phase==="questions"){
+    const q=currentQuestions()[state.step];
+    if(!q)return[];
+    const key=`q-${state.level}-${state.step}`;
+    if(anchorKey!==key){anchorKey=key;anchorYaw=yaw;activeId=null;dwellStart=0;dwellPct=0}
+    const offsets=[-26,0,26];
+    return q.opts.map((o,i)=>({
+      id:"opt-"+state.level+"-"+state.step+"-"+i,yaw:norm(anchorYaw+offsets[i]),icon:o[1],title:o[0],sub:"Seleccionar",kind:"option",index:i
+    }));
+  }
+  if(state.phase==="continue"){
+    const key=`continue-${state.level}`;
+    if(anchorKey!==key){anchorKey=key;anchorYaw=norm(yaw+18);activeId=null;dwellStart=0;dwellPct=0}
+    return [{id:"continue",yaw:anchorYaw,icon:"➡️",title:state.level<5?"Continuar al siguiente nivel":"Ver resultado",sub:"Fija la mirada",kind:"continue"}];
+  }
+  return[];
+}
+
+
+function setControllerDetected(name,input){
+  controllerActive=true;
+  controllerLastInput=performance.now();
+  controllerName=name||controllerName||"Control Bluetooth";
+  if(controllerLed)controllerLed.classList.add("on");
+  if(controllerStatus)controllerStatus.textContent="Control detectado: "+controllerName;
+  if(controllerInput)controllerInput.textContent=input||"Entrada recibida correctamente.";
+  root.classList.add("control-mode");
+  clearTimeout(controllerStatusTimer);
+  controllerStatusTimer=setTimeout(()=>{
+    if(controllerInput)controllerInput.textContent="Joystick/cruceta: navegar · A/OK: seleccionar · B/ESC: recentrar";
+  },2200);
+}
+
+function sortedTargets(){
+  return getTargets().slice().sort((a,b)=>norm(a.yaw-yaw)-norm(b.yaw-yaw));
+}
+
+function nearestTarget(){
+  const targets=getTargets();
+  if(!targets.length)return null;
+  return targets.map(t=>({t,d:Math.abs(norm(t.yaw-yaw))})).sort((a,b)=>a.d-b.d)[0].t;
+}
+
+function centerTarget(target){
+  if(!target)return;
+  const delta=norm(target.yaw-yaw);
+  if(sensorAlpha!=null)manualOffset=norm(manualOffset+delta);
+  else yaw=target.yaw;
+  controllerTargetId=target.id;
+  activeId=null;dwellStart=0;dwellPct=0;
+  updateTargets();
+}
+
+function moveControllerSelection(direction){
+  const targets=sortedTargets();
+  if(!targets.length)return;
+  setControllerDetected(controllerName||"Control Bluetooth",direction<0?"Navegación izquierda":"Navegación derecha");
+
+  let index=targets.findIndex(t=>t.id===controllerTargetId);
+  if(index<0){
+    const nearest=nearestTarget();
+    index=Math.max(0,targets.findIndex(t=>nearest&&t.id===nearest.id));
+  }else{
+    index=(index+direction+targets.length)%targets.length;
+  }
+  centerTarget(targets[index]);
+}
+
+function selectWithController(){
+  const targets=getTargets();
+  if(!targets.length)return;
+  let target=targets.find(t=>t.id===controllerTargetId);
+  if(!target)target=nearestTarget();
+  if(!target)return;
+  setControllerDetected(controllerName||"Control Bluetooth","Botón A/OK: seleccionar");
+  centerTarget(target);
+  activate(target);
+}
+
+function controllerBack(){
+  setControllerDetected(controllerName||"Control Bluetooth","Botón B/ESC: recentrar");
+  recenter();
+  const nearest=nearestTarget();
+  if(nearest)controllerTargetId=nearest.id;
+}
+
+function processControllerCommand(command,source){
+  if(command==="left")moveControllerSelection(-1);
+  if(command==="right")moveControllerSelection(1);
+  if(command==="select")selectWithController();
+  if(command==="back")controllerBack();
+  if(source)setControllerDetected(controllerName||source,source);
+}
+
+function gamepadPressed(gp,index){
+  return Boolean(gp.buttons[index]&&gp.buttons[index].pressed);
+}
+
+function pollGamepads(){
+  if(!navigator.getGamepads)return;
+  const pads=[...navigator.getGamepads()].filter(Boolean);
+  if(!pads.length)return;
+
+  const gp=pads[0];
+  controllerName=gp.id||"Gamepad Bluetooth";
+
+  // Joystick analógico horizontal.
+  const axis=gp.axes&&gp.axes.length?gp.axes[0]:0;
+  if(Math.abs(axis)>.58&&controllerAxisLatch===0){
+    controllerAxisLatch=axis>0?1:-1;
+    moveControllerSelection(controllerAxisLatch);
+  }else if(Math.abs(axis)<.25){
+    controllerAxisLatch=0;
+  }
+
+  // Cruceta estándar.
+  const dpadLeft=gamepadPressed(gp,14);
+  const dpadRight=gamepadPressed(gp,15);
+  const dpadUp=gamepadPressed(gp,12);
+  const dpadDown=gamepadPressed(gp,13);
+
+  const current={
+    left:dpadLeft||dpadUp,
+    right:dpadRight||dpadDown,
+    select:gamepadPressed(gp,0)||gamepadPressed(gp,2)||gamepadPressed(gp,3)||gamepadPressed(gp,9),
+    back:gamepadPressed(gp,1)||gamepadPressed(gp,8)
+  };
+
+  for(const [key,pressed] of Object.entries(current)){
+    if(pressed&&!controllerButtonState[key]){
+      if(key==="left")moveControllerSelection(-1);
+      if(key==="right")moveControllerSelection(1);
+      if(key==="select")selectWithController();
+      if(key==="back")controllerBack();
+    }
+    controllerButtonState[key]=pressed;
+  }
+
+  if(gp.connected)setControllerDetected(controllerName,"Control conectado y listo.");
+}
+
+window.addEventListener("gamepadconnected",e=>{
+  controllerName=e.gamepad.id||"Gamepad Bluetooth";
+  setControllerDetected(controllerName,"Conexión reconocida. Pulsa A/OK para probar.");
+});
+window.addEventListener("gamepaddisconnected",()=>{
+  controllerActive=false;controllerTargetId=null;
+  if(controllerLed)controllerLed.classList.remove("on");
+  if(controllerStatus)controllerStatus.textContent="Control desconectado";
+  if(controllerInput)controllerInput.textContent="Vuelve a conectarlo por Bluetooth.";
+  root.classList.remove("control-mode");
+});
+
+function activate(target){
+  if(locked||!target)return;
+  if(target.kind==="place") openDialogue(target.data);
+  if(target.kind==="option") answer(target.index);
+  if(target.kind==="continue") nextLevel();
+}
+
+function openDialogue(place){
+  locked=true;state.phase="dialog";save();render();
+  feedback={title:place.person,text:place.text,small:"Evidencia: "+place.evidence,icon:place.icon};
+  render();
+  clearTimeout(feedbackTimer);
+  feedbackTimer=setTimeout(()=>{
+    if(!state.visited.includes(place.id)){state.visited.push(place.id);state.score+=10}
+    feedback=null;locked=false;
+    if(state.visited.length===places.length){state.phase="questions";state.step=0;state.score+=20}
+    else state.phase="explore";
+    save();render();
+  },5200);
+}
+
+function answer(index){
+  const q=currentQuestions()[state.step];if(!q)return;
+  locked=true;state.phase="feedback";
+  const ok=index===q.correct;
+  if(ok){
+    state.score+=20;applyDelta(q.delta);
+    if(state.level===5 && q.key)state.steam[q.key]=q.values[index];
+    feedback={title:"Decisión pertinente",text:q.explain,small:"La misión continúa.",icon:"✅",ok:true};
+  }else{
+    state.wrong++;state.score=Math.max(0,state.score-5);
+    feedback={title:"Revisa la decisión",text:q.explain,small:"La pregunta volverá a mostrarse.",icon:"⚠️",ok:false};
+  }
+  save();render();
+  clearTimeout(feedbackTimer);
+  feedbackTimer=setTimeout(()=>{
+    feedback=null;locked=false;
+    if(ok){
+      state.step++;
+      if(state.step>=currentQuestions().length) completeLevel();
+      else state.phase="questions";
+    }else state.phase="questions";
+    save();render();
+  },3600);
+}
+
+function completeLevel(){
+  if(state.level===4)state.improved=true;
+  if(state.level===5){
+    const s=state.steam;
+    const potential=Math.round((s.roof||0)*(s.rain||0)*(s.eff||0));
+    const stored=Math.min(potential,s.tank||0);
+    const valid=stored>=10000 && s.components==="completa";
+    if(valid){state.score+=50;applyDelta({agua:12,participacion:4,aprendizaje:12,bienestar:5})}
+    feedback={
+      title:valid?"Prototipo funcional":"Prototipo incompleto",
+      text:valid?`Captación potencial: ${potential.toLocaleString("es-MX")} L. Almacenamiento útil: ${stored.toLocaleString("es-MX")} L.`:
+      `La simulación produjo ${stored.toLocaleString("es-MX")} L. Revisa la capacidad o los componentes.`,
+      small:valid?"La meta de 10,000 litros fue superada.":"El nivel se repetirá para mejorar el diseño.",
+      icon:valid?"🌧️":"🧪",ok:valid
+    };
+    locked=true;state.phase="feedback";render();
+    setTimeout(()=>{
+      feedback=null;locked=false;
+      if(valid){state.phase="continue";state.step=0}
+      else{state.phase="questions";state.step=0;state.steam={roof:null,rain:null,eff:null,tank:null,components:null}}
+      save();render();
+    },4800);
+    return;
+  }
+  state.phase="continue";state.step=0;state.score+=25;save();render();
+}
+
+function nextLevel(){
+  if(state.level>=5){finish();return}
+  state.level++;state.step=0;state.phase="intro";save();showIntro();render();
+}
+
+function finish(){
+  state.completed=true;state.phase="final";state.score+=30;save();render();
+}
+
+function indicatorsHTML(){
+  const labels={agua:"Agua",participacion:"Particip.",aprendizaje:"Aprendiz.",bienestar:"Bienestar"};
+  return Object.entries(state.indicators).map(([k,v])=>`
+    <div class="ind"><div class="ind-top"><span>${labels[k]}</span><span>${v}%</span></div>
+    <div class="bar"><span style="width:${v}%"></span></div></div>`).join("");
+}
+
+function sceneHTML(eye){
+  const intro=introText();
+  let message="";
+  if(state.phase==="intro"){
+    message=`<div class="message fade"><h2>${intro[0]}</h2><p>${intro[1]}</p><small>La misión comenzará automáticamente.</small></div>`;
+  }else if(state.phase==="dialog"&&feedback){
+    message=`<div class="message fade"><h2>${feedback.icon} ${feedback.title}</h2><p>${feedback.text}</p><small>${feedback.small}</small></div>`;
+  }else if(state.phase==="feedback"&&feedback){
+    message=`<div class="message fade"><h2>${feedback.icon} ${feedback.title}</h2><p>${feedback.text}</p><small>${feedback.small}</small></div>`;
+  }else if(state.phase==="questions"){
+    const q=currentQuestions()[state.step];
+    if(q)message=`<div class="message fade"><h2>${q.title}</h2><p>${q.q}</p><small>Joystick/cruceta para cambiar · A/OK para seleccionar.</small></div>`;
+  }else if(state.phase==="continue"){
+    message=`<div class="message fade"><h2>Etapa completada</h2><p>Los indicadores de la comunidad cambiaron según tus decisiones.</p><small>Centra “Continuar” con el joystick y pulsa A/OK.</small></div>`;
+  }else if(state.phase==="final"){
+    const avg=Math.round(Object.values(state.indicators).reduce((a,b)=>a+b,0)/4);
+    message=`<div class="message fade" style="top:13%"><h2>🏅 Docente agente de transformación</h2>
+      <p>Completaste las cinco misiones articulando diagnóstico, ABPC, ABP, Aprendizaje Servicio y STEAM.</p>
+      <small>Puntaje: ${state.score} · Impacto global: ${avg}% · Errores corregidos: ${state.wrong}</small>
+      <small style="margin-top:12px;color:#fff">El proyecto reduce el desperdicio mediante infraestructura, participación, análisis y experimentación.</small></div>`;
+  }
+  return `
+    <div class="scene-layer">
+      <div class="hill h1"></div><div class="hill h2"></div>
+      <div class="cloud c1">☁️</div><div class="cloud c2">☁️</div>
+      <div class="school-bg">${state.improved?"🏫🌳":"🏫"}</div>
+    </div>
+    <div class="hud"><div class="hud-card level">${levelTitle()}</div><div class="hud-card score">${state.score} pts</div></div>
+    ${message}
+    <div class="targets"></div>
+    <div class="reticle" style="--dwell:${dwellPct}%"></div>
+    <div class="indicators">${indicatorsHTML()}</div>
+    <div class="sensor">${controllerActive?"🎮 Control activo · A/OK selecciona":(sensorOn?"Giroscopio activo · mirada 1.6 s":"Desliza para girar · toca para seleccionar")}</div>`;
+}
+
+function render(){
+  root.classList.toggle("improved",state.improved);
+  document.querySelectorAll(".eye").forEach(eye=>{eye.innerHTML=sceneHTML(Number(eye.dataset.eye))});
+  updateTargets();
+}
+
+function updateTargets(){
+  const targets=getTargets();
+  let best=null,bestAbs=999;
+  document.querySelectorAll(".eye").forEach(eye=>{
+    const eyeSign=Number(eye.dataset.eye);
+    const box=eye.querySelector(".targets");if(!box)return;
+    box.innerHTML="";
+    targets.forEach(t=>{
+      const diff=norm(t.yaw-yaw);
+      if(Math.abs(diff)>52)return;
+      const x=50+(diff/92)*100 + eyeSign*0.8;
+      const y=58;
+      const el=document.createElement("div");
+      el.className="world-target"+(Math.abs(diff)<6?" near":"")+(controllerTargetId===t.id?" controller-selected":"");
+      el.style.left=x+"%";el.style.top=y+"%";
+      el.innerHTML=`<span class="target-icon">${t.icon}</span><span class="target-title">${t.title}</span><span class="target-sub">${t.sub}</span>`;
+      box.appendChild(el);
+      const ad=Math.abs(diff);
+      if(ad<bestAbs){bestAbs=ad;best=t}
+    });
+  });
+  const newActive=bestAbs<6?best:null;
+
+  // Con control activo, la selección se confirma exclusivamente con A/OK.
+  if(controllerActive){
+    if(newActive&&!controllerTargetId)controllerTargetId=newActive.id;
+    activeId=null;dwellStart=0;dwellPct=0;
+  }else if(!newActive){
+    activeId=null;dwellStart=0;dwellPct=0;
+  }else if(activeId!==newActive.id){
+    activeId=newActive.id;dwellStart=performance.now();dwellPct=0;
+  }else{
+    dwellPct=Math.min(100,(performance.now()-dwellStart)/1600*100);
+    if(dwellPct>=100){
+      activeId=null;dwellStart=0;dwellPct=0;activate(newActive);
+    }
+  }
+  document.querySelectorAll(".reticle").forEach(r=>r.style.setProperty("--dwell",dwellPct+"%"));
+}
+
+function loop(){
+  if(sensorAlpha!=null&&baseAlpha!=null&&!dragging){
+    yaw=norm(baseAlpha-sensorAlpha+manualOffset);
+  }
+  pollGamepads();
+  updateTargets();
+  requestAnimationFrame(loop);
+}
+
+function recenter(){
+  if(sensorAlpha!=null)baseAlpha=sensorAlpha;
+  manualOffset=0;yaw=0;anchorKey="";activeId=null;dwellStart=0;dwellPct=0;updateTargets();
+}
+
+root.addEventListener("pointerdown",e=>{dragging=true;lastX=e.clientX});
+root.addEventListener("pointermove",e=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastX;lastX=e.clientX;
+  if(sensorAlpha!=null)manualOffset=norm(manualOffset-dx*.24);
+  else yaw=norm(yaw-dx*.24);
+  updateTargets();
+});
+root.addEventListener("pointerup",()=>dragging=false);
+root.addEventListener("pointercancel",()=>dragging=false);
+root.addEventListener("click",()=>{
+  const t=getTargets().map(x=>({x,d:Math.abs(norm(x.yaw-yaw))})).sort((a,b)=>a.d-b.d)[0];
+  if(t&&t.d<8){
+    if(controllerActive)setControllerDetected(controllerName||"Control en modo ratón","Clic/OK: seleccionar");
+    activate(t.x);
+  }
+});
+root.addEventListener("dblclick",recenter);
+window.addEventListener("keydown",e=>{
+  const key=(e.key||"").toLowerCase();
+  const code=e.code||"";
+  const kc=e.keyCode||e.which||0;
+
+  const left =
+    key==="arrowleft"||key==="a"||code==="DPadLeft"||
+    [21,37].includes(kc);
+  const right =
+    key==="arrowright"||key==="d"||code==="DPadRight"||
+    [22,39].includes(kc);
+  const up =
+    key==="arrowup"||key==="w"||code==="DPadUp"||
+    [19,38].includes(kc);
+  const down =
+    key==="arrowdown"||key==="s"||code==="DPadDown"||
+    [20,40].includes(kc);
+  const select =
+    key==="enter"||key===" "||code==="NumpadEnter"||
+    [13,23,24,25,32,66,96].includes(kc);
+  const back =
+    key==="escape"||key==="backspace"||key==="browserback"||
+    [4,8,27,97].includes(kc);
+
+  if(left||up){e.preventDefault();processControllerCommand("left","Control en modo teclado");}
+  else if(right||down){e.preventDefault();processControllerCommand("right","Control en modo teclado");}
+  else if(select){e.preventDefault();processControllerCommand("select","Control en modo teclado");}
+  else if(back){e.preventDefault();processControllerCommand("back","Control en modo teclado");}
+
+  updateTargets();
+});
+
+if(state.completed){state.phase="final";state.level=5}
+})();
+</script>
+</body>
+</html>
