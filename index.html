@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#071b21">
+<title>Misión NEM VR · Giroscopio restaurado v9</title>
+<style>
+:root{
+  --sky1:#74c8df;--sky2:#d8eff3;--ground1:#88bd69;--ground2:#416d45;
+  --ink:#f6fffd;--aqua:#29d3c2;--gold:#ffd166;--danger:#ff6b6b;--ok:#55d98b;
+  --panel:rgba(5,24,30,.88);--line:rgba(255,255,255,.22);
+  --left-eye-x:0px;--right-eye-x:0px;--left-eye-y:0px;--right-eye-y:0px;
+  --viewport-scale:.88;--scene-zoom:1;
+  --vr-title-size:22px;--vr-body-size:15px;--vr-small-size:11px;
+  --vr-target-title-size:15px;--vr-target-sub-size:11px;
+  --vr-hud-size:11px;--vr-ind-size:9px;--vr-sensor-size:10px;
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#041319;color:var(--ink);
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;touch-action:none;user-select:none}
+button{font:inherit}
+#setup{
+  position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;
+  background:
+    radial-gradient(circle at 15% 15%,rgba(41,211,194,.18),transparent 30%),
+    radial-gradient(circle at 85% 5%,rgba(255,209,102,.16),transparent 28%),
+    linear-gradient(145deg,#061b23,#0c3039);
+}
+.setup-card{width:min(780px,100%);max-height:95vh;overflow:auto;background:rgba(5,24,30,.91);
+  border:1px solid var(--line);border-radius:26px;padding:28px;box-shadow:0 30px 90px rgba(0,0,0,.45)}
+.logo{display:inline-grid;place-items:center;width:64px;height:64px;border-radius:20px;
+  background:linear-gradient(135deg,#0f807e,#29d3c2);font-weight:1000;font-size:1.15rem;box-shadow:0 12px 30px rgba(41,211,194,.2)}
+h1{font-size:clamp(2rem,5vw,4.2rem);letter-spacing:-.05em;line-height:.98;margin:18px 0 14px}
+h1 span{color:var(--aqua)}
+.setup-card p{color:#c6dfdc;line-height:1.55;margin:10px 0}
+.instructions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}
+.inst{border:1px solid var(--line);border-radius:16px;padding:14px;background:rgba(255,255,255,.05)}
+.inst b{display:block;color:var(--gold);font-size:1.35rem;margin-bottom:6px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.setup-view{display:none;width:min(780px,100%)}
+.setup-view.active{display:block}
+.calibration-view{width:min(920px,100%)}
+.calibration-view .setup-card{width:100%}
+.calibration-header{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px
+}
+.calibration-header h1{font-size:clamp(1.8rem,4.4vw,3.4rem);margin:0}
+.icon-btn{
+  width:46px;height:46px;flex:0 0 46px;border:1px solid var(--line);border-radius:13px;
+  background:rgba(255,255,255,.06);color:white;font-size:1.3rem;font-weight:900;
+  cursor:pointer
+}
+.calibration-panel{
+  margin-top:16px;padding:18px;border:1px solid var(--line);border-radius:20px;
+  background:rgba(255,255,255,.045)
+}
+.calibration-panel h2{margin:0 0 7px;color:var(--gold);font-size:1.35rem}
+.calibration-panel>p{margin:0 0 15px;font-size:.92rem}
+.cal-preview{
+  display:grid;grid-template-columns:1fr 1fr;gap:2px;height:190px;margin-bottom:16px;
+  border:2px solid rgba(255,255,255,.25);border-radius:18px;overflow:hidden;background:#000
+}
+.cal-eye-preview{
+  position:relative;overflow:hidden;background:
+    linear-gradient(rgba(41,211,194,.08) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(41,211,194,.08) 1px,transparent 1px),
+    radial-gradient(circle at center,#123845,#061a21 75%);
+  background-size:20px 20px,20px 20px,auto
+}
+.cal-eye-preview:first-child{border-right:2px solid #000}
+.cal-preview-content{
+  position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+  transform-origin:center;transition:transform .12s ease
+}
+.cal-cross{
+  width:62px;height:62px;border:3px solid var(--gold);border-radius:50%;position:relative;margin:auto
+}
+.cal-cross:before,.cal-cross:after{content:"";position:absolute;background:var(--aqua);left:50%;top:50%;transform:translate(-50%,-50%)}
+.cal-cross:before{width:86px;height:2px}.cal-cross:after{width:2px;height:86px}
+.cal-sample{margin-top:12px;font-weight:900;color:white;line-height:1.15}
+.cal-sample small{display:block;color:#b9d9d4;margin-top:4px;font-weight:600}
+.calibration-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px}
+.cal-control{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center}
+.cal-control label{font-size:.85rem;font-weight:800}
+.cal-control output{
+  min-width:62px;text-align:right;color:var(--aqua);font-size:.82rem;font-weight:900
+}
+.cal-control input{grid-column:1/-1;width:100%;accent-color:var(--aqua)}
+.cal-control-row{
+  grid-column:1/-1;display:grid;grid-template-columns:48px 1fr 48px;gap:8px;align-items:center
+}
+.cal-control-row input{grid-column:auto;width:100%;min-width:0}
+.touch-step{
+  min-height:44px;border:1px solid var(--line);border-radius:12px;
+  background:rgba(255,255,255,.08);color:white;font-size:1.25rem;font-weight:950;
+  cursor:pointer;touch-action:manipulation
+}
+.touch-step:active{background:rgba(41,211,194,.22);border-color:var(--aqua)}
+.cal-touch-panel{
+  position:fixed;left:0;right:0;bottom:max(8px,env(safe-area-inset-bottom));z-index:260;
+  display:none;grid-template-columns:1fr auto 1fr;align-items:end;gap:12px;
+  padding:10px 14px;pointer-events:none
+}
+.game-touch-panel{
+  position:fixed;left:0;right:0;bottom:max(7px,env(safe-area-inset-bottom));z-index:255;
+  display:none;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px;
+  padding:8px 12px;pointer-events:none
+}
+.stereo:not(.calibration-mode) .game-touch-panel,
+.mono:not(.calibration-mode) .game-touch-panel{display:grid}
+.game-touch-group{display:flex;gap:7px;pointer-events:auto}
+.game-touch-group.center{justify-self:center}
+.game-touch-group.right{justify-self:end}
+.game-touch-panel button{
+  min-width:52px;min-height:46px;padding:0 12px;
+  border:1px solid rgba(255,255,255,.34);border-radius:13px;
+  background:rgba(3,17,22,.78);color:white;font-weight:950;
+  backdrop-filter:blur(5px);touch-action:manipulation
+}
+.game-touch-panel button:active{
+  background:rgba(41,211,194,.34);border-color:var(--aqua)
+}
+.game-touch-panel .touch-select{
+  border-color:var(--aqua);color:var(--aqua);min-width:80px
+}
+.game-touch-panel .touch-recenter{color:var(--gold)}
+.game-touch-panel .touch-menu{color:#ff9f9f;border-color:rgba(255,159,159,.5)}
+
+.calibration-mode .cal-touch-panel{display:grid}
+.cal-pad,.cal-actions-touch{pointer-events:auto}
+.cal-pad{
+  display:grid;grid-template-columns:58px 58px 58px;grid-template-rows:52px 52px 52px;
+  gap:6px;justify-self:start
+}
+.cal-pad button,.cal-actions-touch button{
+  border:1px solid rgba(255,255,255,.35);border-radius:13px;
+  background:rgba(3,17,22,.84);color:white;font-weight:950;
+  min-width:52px;min-height:48px;backdrop-filter:blur(5px);touch-action:manipulation
+}
+.cal-pad button:active,.cal-actions-touch button:active{
+  background:rgba(41,211,194,.35);border-color:var(--aqua)
+}
+.cal-up{grid-column:2;grid-row:1}
+.cal-left{grid-column:1;grid-row:2}
+.cal-right{grid-column:3;grid-row:2}
+.cal-down{grid-column:2;grid-row:3}
+.cal-center-label{
+  grid-column:2;grid-row:2;display:grid;place-items:center;
+  border:1px dashed rgba(255,255,255,.28);border-radius:13px;
+  background:rgba(3,17,22,.55);color:var(--gold);font-size:.68rem;text-align:center;padding:3px
+}
+.cal-actions-touch{
+  justify-self:end;display:grid;gap:7px
+}
+.cal-actions-touch button{padding:0 14px;font-size:.82rem}
+.cal-actions-touch .save-touch{border-color:var(--aqua);color:var(--aqua)}
+.menu-note{
+  color:#bddbd6;font-size:.82rem;line-height:1.45;margin:12px 0 0
+}
+
+.cal-help{
+  margin-top:14px;padding:10px 12px;border-left:4px solid var(--aqua);
+  background:rgba(41,211,194,.08);border-radius:10px;color:#c9e5e1;font-size:.82rem;line-height:1.45
+}
+.cal-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.cal-status{color:var(--ok);font-weight:800;font-size:.82rem;align-self:center}
+.calibrated-content{
+  position:absolute;inset:0;transform-origin:center;will-change:transform
+}
+.eye.left .calibrated-content{
+  transform:translate(var(--left-eye-x),var(--left-eye-y)) scale(var(--viewport-scale))
+}
+.eye.right .calibrated-content{
+  transform:translate(var(--right-eye-x),var(--right-eye-y)) scale(var(--viewport-scale))
+}
+.scene-layer,.targets{
+  transform:scale(var(--scene-zoom));
+  transform-origin:center
+}
+.targets{position:absolute;inset:0;z-index:9;pointer-events:none}
+.calibration-mark{
+  transform:translate(-50%,-50%) scale(var(--scene-zoom)) !important
+}
+.calibration-scene{
+  position:absolute;inset:0;
+  background:
+    linear-gradient(rgba(41,211,194,.16) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(41,211,194,.16) 1px,transparent 1px),
+    radial-gradient(circle at center,#173f4a,#05171d 72%);
+  background-size:32px 32px,32px 32px,auto
+}
+.calibration-mark{
+  position:absolute;left:50%;top:47%;
+  width:150px;height:150px;border:5px solid var(--gold);border-radius:50%
+}
+.calibration-mark:before,.calibration-mark:after{
+  content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--aqua)
+}
+.calibration-mark:before{width:220px;height:3px}
+.calibration-mark:after{width:3px;height:220px}
+.calibration-center-dot{
+  position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);
+  width:18px;height:18px;border-radius:50%;background:white;box-shadow:0 0 0 7px rgba(255,255,255,.16)
+}
+.calibration-readout{
+  position:absolute;left:8%;right:8%;top:8%;text-align:center;padding:12px 14px;border:1px solid var(--line);
+  border-radius:16px;background:rgba(3,17,22,.86)
+}
+.calibration-readout strong{display:block;color:var(--gold);font-size:var(--vr-title-size)}
+.calibration-readout span{display:block;margin-top:4px;font-size:var(--vr-body-size)}
+.calibration-instructions{
+  position:absolute;left:8%;right:8%;bottom:8%;text-align:center;padding:10px 12px;
+  border-radius:14px;background:rgba(3,17,22,.82);font-size:var(--vr-small-size);line-height:1.4
+}
+.btn{border:0;border-radius:14px;padding:13px 18px;font-weight:900;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#0f807e,#29d3c2);color:#031719}
+.btn-secondary{background:transparent;border:2px solid var(--aqua);color:var(--aqua)}
+.compat{margin-top:18px;padding:12px 14px;border-left:4px solid var(--gold);background:rgba(255,209,102,.09);border-radius:10px;font-size:.9rem}
+#vrRoot{position:fixed;inset:0;display:none;background:#000}
+#vrRoot.stereo{display:grid;grid-template-columns:1fr 1fr}
+#vrRoot.mono{display:block}
+.eye{position:relative;overflow:hidden;background:
+  linear-gradient(to bottom,var(--sky1) 0 55%,var(--ground1) 55% 77%,var(--ground2) 77% 100%);
+  isolation:isolate}
+.mono .eye.right{display:none}
+.mono .eye.left{width:100%;height:100%}
+.eye:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:30;
+  background:radial-gradient(ellipse at center,transparent 48%,rgba(0,0,0,.18) 72%,rgba(0,0,0,.67) 100%)
+}
+.stereo .eye.left{border-right:2px solid #000}
+.scene-layer{position:absolute;inset:0;overflow:hidden}
+.hill{position:absolute;bottom:20%;width:55%;height:25%;border-radius:50% 50% 0 0;background:#62925c;opacity:.8}
+.h1{left:-14%}.h2{right:-15%;transform:scale(.8)}
+.cloud{position:absolute;font-size:clamp(2rem,7vw,5rem);opacity:.75;filter:drop-shadow(0 7px 5px rgba(0,0,0,.12))}
+.c1{top:10%;left:8%}.c2{top:17%;right:8%;transform:scale(.7)}
+.school-bg{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);font-size:clamp(4rem,14vw,9rem);
+  filter:drop-shadow(0 16px 10px rgba(0,0,0,.25));opacity:.92}
+.improved .eye{background:linear-gradient(to bottom,#65cfea 0 55%,#83cf70 55% 77%,#326a3d 77% 100%)}
+.improved .school-bg{filter:drop-shadow(0 16px 10px rgba(0,0,0,.2)) saturate(1.2)}
+.hud{position:absolute;left:4%;right:4%;top:4%;z-index:12;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hud-card{background:rgba(4,19,25,.73);border:1px solid var(--line);border-radius:12px;padding:7px 9px;
+  backdrop-filter:blur(5px);font-size:var(--vr-hud-size);font-weight:850}
+.level{color:var(--gold)}
+.score{color:var(--aqua)}
+.message{position:absolute;left:8%;right:8%;top:17%;z-index:14;background:var(--panel);border:1px solid var(--line);
+  border-radius:18px;padding:clamp(12px,2.8vw,21px);box-shadow:0 14px 40px rgba(0,0,0,.35);text-align:center}
+.message h2{font-size:var(--vr-title-size);margin:0 0 8px;color:var(--gold)}
+.message p{font-size:var(--vr-body-size);line-height:1.42;margin:0;color:#e1f2ef}
+.message small{display:block;margin-top:8px;color:#9fc5c0;font-size:var(--vr-small-size)}
+.world-target{position:absolute;z-index:10;transform:translate(-50%,-50%);width:min(34%,210px);min-width:112px;
+  padding:10px;border-radius:16px;text-align:center;background:rgba(5,24,30,.87);border:2px solid rgba(255,255,255,.28);
+  box-shadow:0 12px 30px rgba(0,0,0,.32);transition:opacity .12s,filter .12s,border-color .12s}
+.world-target.near{border-color:var(--gold);filter:brightness(1.15);box-shadow:0 0 0 3px rgba(255,209,102,.18),0 15px 35px rgba(0,0,0,.4)}
+.world-target.touch-selected{
+  border-color:var(--aqua);filter:brightness(1.2);
+  box-shadow:0 0 0 4px rgba(41,211,194,.28),0 15px 38px rgba(0,0,0,.45)
+}
+.world-target.done{border-color:var(--ok);background:rgba(5,63,47,.86)}
+.target-icon{font-size:clamp(1.35rem,4.2vw,2.45rem);line-height:1}
+.target-title{display:block;font-size:var(--vr-target-title-size);font-weight:950;margin-top:4px}
+.target-sub{display:block;font-size:var(--vr-target-sub-size);color:#b9d9d4;margin-top:3px}
+.reticle{position:absolute;left:50%;top:50%;width:38px;height:38px;transform:translate(-50%,-50%);z-index:40;border-radius:50%;
+  background:conic-gradient(var(--gold) var(--dwell,0%),rgba(255,255,255,.18) 0);
+  box-shadow:0 0 18px rgba(255,209,102,.35)}
+.reticle:after{content:"";position:absolute;inset:6px;border-radius:50%;background:rgba(2,14,18,.72);border:2px solid rgba(255,255,255,.85)}
+.reticle:before{content:"+";position:absolute;inset:0;display:grid;place-items:center;z-index:2;font-weight:1000;color:white;font-size:15px}
+.sensor{position:absolute;left:50%;bottom:5%;transform:translateX(-50%);z-index:15;background:rgba(4,19,25,.7);border:1px solid var(--line);
+  border-radius:999px;padding:6px 10px;font-size:var(--vr-sensor-size);white-space:nowrap;color:#c4ded9}
+.indicators{position:absolute;left:5%;right:5%;bottom:12%;z-index:13;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.ind{background:rgba(4,19,25,.73);border:1px solid var(--line);border-radius:9px;padding:5px}
+.ind-top{display:flex;justify-content:space-between;font-size:var(--vr-ind-size);font-weight:850}
+.bar{height:5px;background:rgba(255,255,255,.15);border-radius:9px;overflow:hidden;margin-top:4px}
+.bar span{display:block;height:100%;background:linear-gradient(90deg,#0f807e,#55d98b);border-radius:9px}
+.fade{animation:fade .35s ease}
+@keyframes fade{from{opacity:.15}to{opacity:1}}
+#rotateNotice{display:none;position:fixed;inset:0;z-index:200;background:#041319;color:white;place-items:center;text-align:center;padding:30px}
+#rotateNotice div{max-width:420px}#rotateNotice b{display:block;font-size:4rem;margin-bottom:16px}
+@media(orientation:portrait) and (max-width:900px){#rotateNotice{display:grid}}
+@media(max-width:700px){
+  .setup-card{padding:20px}.instructions{grid-template-columns:1fr}.inst{padding:10px}
+  .calibration-header{align-items:center}
+  .calibration-view .setup-card{padding:17px}
+  .calibration-controls{grid-template-columns:1fr}
+  .cal-preview{height:150px}
+  .cal-touch-panel{padding:7px 8px;gap:5px}
+  .cal-pad{grid-template-columns:48px 48px 48px;grid-template-rows:44px 44px 44px;gap:4px}
+  .cal-pad button,.cal-actions-touch button{min-width:44px;min-height:42px}
+  .cal-actions-touch button{padding:0 9px;font-size:.72rem}
+  .game-touch-panel{padding:5px 6px;gap:4px}
+  .game-touch-panel button{min-width:44px;min-height:40px;padding:0 8px;font-size:.72rem}
+  .game-touch-panel .touch-select{min-width:66px}
+}
+</style>
+</head>
+<body>
+<section id="setup">
+  <div class="setup-view active" id="mainMenuView">
+    <div class="setup-card">
+      <div class="logo">NEM VR</div>
+      <h1>Misión NEM:<br><span>Transformando mi Comunidad</span></h1>
+      <p>
+        Experiencia inmersiva para visor móvil tipo <strong>VR Shinecon SC-G12</strong>.
+        El problema central es el desperdicio de agua en la Escuela Comunitaria “Horizontes”.
+      </p>
+
+      <div class="instructions">
+        <div class="inst"><b>1</b>Abre el archivo en el celular y colócalo horizontalmente.</div>
+        <div class="inst"><b>2</b>Calibra el visor una sola vez desde Configuración.</div>
+        <div class="inst"><b>3</b>Gira la cabeza con el giroscopio o utiliza los controles táctiles del celular.</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="enterVr">Entrar en VR</button>
+        <button class="btn btn-secondary" id="openSettings">⚙ Configuración del visor</button>
+        <button class="btn btn-secondary" id="activateSensors">◉ Activar giroscopio</button>
+        <button class="btn btn-secondary" id="enterMono">Probar sin gafas</button>
+        <button class="btn btn-secondary" id="reset">Borrar progreso</button>
+      </div>
+
+      <div class="compat">
+        <strong>Funciones:</strong> gira la cabeza para apuntar. Mantén la mirada para seleccionar,
+        o utiliza los botones táctiles del celular para cambiar de opción, confirmar y recentrar.
+        <div id="sensorSetupStatus" style="margin-top:8px;color:#c9e5e1">
+          Giroscopio pendiente de activación.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="setup-view calibration-view" id="calibrationMenuView">
+    <div class="setup-card">
+      <div class="calibration-header">
+        <div>
+          <div class="logo">⚙</div>
+          <h1>Configuración<br><span>del visor</span></h1>
+        </div>
+        <button class="icon-btn" type="button" id="closeSettings" aria-label="Volver al menú principal">×</button>
+      </div>
+
+      <p>
+        Esta sección es independiente del inicio del juego. Ajusta el visor, guarda la configuración
+        y después vuelve al menú principal para entrar a VR.
+      </p>
+
+      <section class="calibration-panel" aria-labelledby="calTitle">
+        <h2 id="calTitle">Alineación y legibilidad</h2>
+        <p>
+          El valor horizontal <strong>0</strong> incluye la antigua corrección de <strong>−40</strong>.
+          La altura <strong>0</strong> también incorpora un descenso base para centrar la imagen en estos lentes.
+        </p>
+
+        <div class="cal-preview" aria-label="Vista previa de calibración estereoscópica">
+          <div class="cal-eye-preview">
+            <div class="cal-preview-content" id="previewLeft">
+              <div>
+                <div class="cal-cross"></div>
+                <div class="cal-sample">MISIÓN NEM<small>Ojo izquierdo</small></div>
+              </div>
+            </div>
+          </div>
+          <div class="cal-eye-preview">
+            <div class="cal-preview-content" id="previewRight">
+              <div>
+                <div class="cal-cross"></div>
+                <div class="cal-sample">MISIÓN NEM<small>Ojo derecho</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="calibration-controls">
+          <div class="cal-control">
+            <label for="calHorizontal">Ajuste horizontal fino</label>
+            <output id="calHorizontalOut">0 px</output>
+            <div class="cal-control-row">
+              <button class="touch-step" type="button" data-cal-step="horizontal" data-dir="-1" aria-label="Reducir">−</button>
+              <input id="calHorizontal" type="range" min="-40" max="40" step="1" value="0">
+              <button class="touch-step" type="button" data-cal-step="horizontal" data-dir="1" aria-label="Aumentar">+</button>
+            </div>
+          </div>
+
+          <div class="cal-control">
+            <label for="calVertical">Desnivel entre ojos</label>
+            <output id="calVerticalOut">0 px</output>
+            <div class="cal-control-row">
+              <button class="touch-step" type="button" data-cal-step="vertical" data-dir="-1" aria-label="Reducir">−</button>
+              <input id="calVertical" type="range" min="-24" max="24" step="1" value="0">
+              <button class="touch-step" type="button" data-cal-step="vertical" data-dir="1" aria-label="Aumentar">+</button>
+            </div>
+          </div>
+
+          <div class="cal-control">
+            <label for="calHeight">Altura general</label>
+            <output id="calHeightOut">0 px</output>
+            <div class="cal-control-row">
+              <button class="touch-step" type="button" data-cal-step="height" data-dir="-1" aria-label="Reducir">−</button>
+              <input id="calHeight" type="range" min="-50" max="50" step="1" value="0">
+              <button class="touch-step" type="button" data-cal-step="height" data-dir="1" aria-label="Aumentar">+</button>
+            </div>
+          </div>
+
+          <div class="cal-control">
+            <label for="calZoom">Tamaño de imágenes y escenarios</label>
+            <output id="calZoomOut">100%</output>
+            <div class="cal-control-row">
+              <button class="touch-step" type="button" data-cal-step="zoom" data-dir="-1" aria-label="Reducir">−</button>
+              <input id="calZoom" type="range" min="70" max="125" step="1" value="100">
+              <button class="touch-step" type="button" data-cal-step="zoom" data-dir="1" aria-label="Aumentar">+</button>
+            </div>
+          </div>
+
+          <div class="cal-control">
+            <label for="calFont">Tamaño del texto</label>
+            <output id="calFontOut">100%</output>
+            <div class="cal-control-row">
+              <button class="touch-step" type="button" data-cal-step="font" data-dir="-1" aria-label="Reducir">−</button>
+              <input id="calFont" type="range" min="75" max="165" step="5" value="100">
+              <button class="touch-step" type="button" data-cal-step="font" data-dir="1" aria-label="Aumentar">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cal-help">
+          <strong>Guía:</strong> si percibes dos imágenes, modifica primero el ajuste horizontal fino.
+          El tamaño de imágenes solo reduce escenarios, íconos y opciones; el texto se regula por separado.
+        </div>
+
+        <div class="cal-actions">
+          <button class="btn btn-primary" id="testCalibration">Probar dentro de las gafas</button>
+          <button class="btn btn-secondary" id="resetCalibration">Restablecer valores</button>
+          <button class="btn btn-secondary" id="saveCalibrationMenu">Guardar y volver</button>
+          <span class="cal-status" id="calibrationStatus">Los cambios se guardan automáticamente.</span>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+<div id="vrRoot">
+  <div class="eye left" data-eye="-1"></div>
+  <div class="eye right" data-eye="1"></div>
+
+  <div class="game-touch-panel" id="gameTouchPanel" aria-label="Controles táctiles del juego">
+    <div class="game-touch-group">
+      <button type="button" class="touch-menu" data-game-command="menu" aria-label="Volver al menú">☰ MENÚ</button>
+      <button type="button" data-game-command="left" aria-label="Opción anterior">◀</button>
+      <button type="button" data-game-command="right" aria-label="Opción siguiente">▶</button>
+    </div>
+    <div class="game-touch-group center">
+      <button type="button" class="touch-select" data-game-command="select">SELECCIONAR</button>
+    </div>
+    <div class="game-touch-group right">
+      <button type="button" class="touch-recenter" data-game-command="recenter">CENTRAR</button>
+    </div>
+  </div>
+
+  <div class="cal-touch-panel" id="calTouchPanel" aria-label="Controles táctiles de calibración">
+    <div class="cal-pad">
+      <button type="button" class="cal-up" data-cal-command="up" aria-label="Parámetro anterior">▲</button>
+      <button type="button" class="cal-left" data-cal-command="left" aria-label="Reducir valor">◀</button>
+      <div class="cal-center-label">AJUSTE</div>
+      <button type="button" class="cal-right" data-cal-command="right" aria-label="Aumentar valor">▶</button>
+      <button type="button" class="cal-down" data-cal-command="down" aria-label="Parámetro siguiente">▼</button>
+    </div>
+    <div></div>
+    <div class="cal-actions-touch">
+      <button type="button" class="save-touch" data-cal-command="save">GUARDAR</button>
+      <button type="button" data-cal-command="reset">REINICIAR</button>
+      <button type="button" data-cal-command="back">VOLVER</button>
+    </div>
+  </div>
+</div>
+
+<div id="rotateNotice"><div><b>↻</b><h2>Gira el celular</h2><p>La experiencia VR requiere orientación horizontal.</p></div></div>
+
+<script>
+(() => {
+"use strict";
+
+const STORAGE="nem-vr-scg12-touch-v9";
+const CALIB_STORAGE="nem-vr-scg12-calibration-v7";
+const HORIZONTAL_BASE=-40;
+const VERTICAL_BASE=20;
+const VIEWPORT_BASE_SCALE=0.88;
+const IMAGE_BASE_SCALE=0.80;
+const DEFAULT_CALIBRATION={
+  horizontal:0,
+  vertical:0,
+  height:0,
+  zoom:100,
+  font:100
+};
+let calibration=loadCalibration();
+let calibrationMode=false;
+let calibrationIndex=0;
+let calibrationAxisLatchY=0;
+const initial={
+  level:1,phase:"intro",score:0,visited:[],step:0,wrong:0,
+  indicators:{agua:28,participacion:30,aprendizaje:38,bienestar:42},
+  improved:false,steam:{roof:null,rain:null,eff:null,tank:null,components:null},
+  completed:false
+};
+let state=load();
+let vrMode=true, yaw=0, baseAlpha=null, sensorAlpha=null, sensorOn=false, manualOffset=0;
+let orientationListenersReady=false;
+let sensorPermissionState="unknown";
+let orientationEventCount=0;
+let lastOrientationEvent=0;
+let lastRawOrientation={alpha:null,beta:null,gamma:null,absolute:false};
+let previousSensorAlpha=null;
+let detectedRotation=0;
+let dragging=false,lastX=0,activeId=null,dwellStart=0,dwellPct=0,locked=false;
+let touchTargetId=null;
+let anchorKey="", anchorYaw=0;
+let revealedAt=0;
+const REVEAL_GRACE=900;
+let optionOrderKey="", optionOrder=[];
+let introReady=false, feedback=null, feedbackTimer=null;
+let loopRunning=false;
+
+function shuffleArray(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+
+const calibrationOptions=[
+  {key:"horizontal",label:"Separación horizontal",min:-40,max:40,step:1,unit:" px"},
+  {key:"vertical",label:"Desnivel entre ojos",min:-24,max:24,step:1,unit:" px"},
+  {key:"height",label:"Altura general",min:-50,max:50,step:1,unit:" px"},
+  {key:"zoom",label:"Tamaño de imágenes y escenarios",min:70,max:125,step:1,unit:"%"},
+  {key:"font",label:"Tamaño del texto",min:75,max:165,step:5,unit:"%"}
+];
+
+const places=[
+ {id:"escuela",yaw:-66,icon:"🏫",title:"Escuela",person:"Mariana, estudiante",text:"En los sanitarios hay tres llaves que gotean todo el día.",evidence:"Tres fugas continuas en sanitarios."},
+ {id:"plaza",yaw:-40,icon:"⛲",title:"Plaza",person:"Don Ernesto, vecino",text:"La presión del agua disminuye entre las ocho y las once de la mañana.",evidence:"Baja presión en el horario de mayor consumo."},
+ {id:"salud",yaw:-14,icon:"🏥",title:"Centro de salud",person:"Dra. Salgado",text:"El suministro irregular provoca que algunas familias almacenen agua sin protección.",evidence:"El problema también afecta la salud comunitaria."},
+ {id:"parque",yaw:14,icon:"🌳",title:"Parque",person:"Lucía, madre de familia",text:"Los jardines escolares se riegan al mediodía, cuando se pierde más agua por evaporación.",evidence:"El horario de riego es ineficiente."},
+ {id:"mercado",yaw:40,icon:"🛒",title:"Mercado",person:"Óscar, comerciante",text:"Usar boquillas y cubetas redujo nuestro consumo sin afectar la limpieza.",evidence:"Existen prácticas locales que pueden adaptarse."},
+ {id:"biblioteca",yaw:66,icon:"📚",title:"Biblioteca",person:"Elena, bibliotecaria",text:"Los recibos muestran un aumento de 28 por ciento en tres meses.",evidence:"El consumo subió sin aumentar la matrícula."}
+];
+
+const questions={
+  1:[
+    {title:"Diagnóstico 1 de 3",q:"¿Cuál es el problema central?",opts:[
+      ["Falta de clases de ciencias","📖"],["Desperdicio de agua por fugas y prácticas ineficientes","💧"],["Ausencia total de agua","🚱"]],correct:1,
+      explain:"Las evidencias relacionan fugas, riego, limpieza y aumento del consumo.",delta:{agua:4,participacion:2,aprendizaje:6,bienestar:2}},
+    {title:"Diagnóstico 2 de 3",q:"¿Qué evidencia es más sólida?",opts:[
+      ["Una opinión aislada","💬"],["Recibos, observación y testimonios","📊"],["Una fotografía sin contexto","📷"]],correct:1,
+      explain:"La triangulación de fuentes permite un diagnóstico más confiable.",delta:{agua:2,participacion:3,aprendizaje:7,bienestar:1}},
+    {title:"Diagnóstico 3 de 3",q:"¿Qué principio de la NEM orienta la intervención?",opts:[
+      ["Aplicar una solución idéntica en todas las escuelas","📋"],["Vincular aprendizaje, contexto y participación","🤝"],["Resolverlo únicamente desde la dirección","🏢"]],correct:1,
+      explain:"La NEM parte del contexto y reconoce a la comunidad como participante.",delta:{agua:2,participacion:7,aprendizaje:5,bienestar:4}}
+  ],
+  2:[
+    {title:"ABPC · Problema",q:"¿Qué problemática debe priorizar el proyecto?",opts:[
+      ["Ruido alrededor de la escuela","🔊"],["Desperdicio de agua","💧"],["Falta de torneos deportivos","⚽"]],correct:1,
+      explain:"Es la necesidad respaldada por las evidencias comunitarias.",delta:{agua:5,participacion:2,aprendizaje:3,bienestar:1}},
+    {title:"ABPC · Objetivo",q:"Selecciona el objetivo mejor formulado.",opts:[
+      ["Cuidar el agua algún día","🗓️"],["Reducir 25% el consumo en ocho semanas","🎯"],["Comprar carteles","🪧"]],correct:1,
+      explain:"El objetivo define resultado, magnitud y periodo.",delta:{agua:7,participacion:3,aprendizaje:5,bienestar:2}},
+    {title:"ABPC · Equipo",q:"¿Quiénes deben integrar el proyecto?",opts:[
+      ["Solo la dirección","🏢"],["Estudiantes, docentes, familias, mantenimiento y comunidad","👥"],["Solo estudiantes con mejores calificaciones","🏅"]],correct:1,
+      explain:"La colaboración amplía conocimientos, responsabilidades e impacto.",delta:{agua:2,participacion:12,aprendizaje:4,bienestar:6}},
+    {title:"ABPC · Organización",q:"¿Cómo se distribuyen las responsabilidades?",opts:[
+      ["Una persona hace todo","1️⃣"],["Brigadas, responsables, calendario y evidencias","🗂️"],["Sin roles ni seguimiento","🎲"]],correct:1,
+      explain:"La corresponsabilidad necesita tareas claras y seguimiento.",delta:{agua:4,participacion:7,aprendizaje:5,bienestar:4}}
+  ],
+  3:[
+    {title:"ABP · Pregunta guía",q:"¿Qué pregunta permite investigar el problema?",opts:[
+      ["¿Quién tiene la culpa?","👉"],["¿Dónde, cuándo y por qué se desperdicia el agua?","🔎"],["¿Por qué nadie cuida nada?","😠"]],correct:1,
+      explain:"Una pregunta investigable evita prejuicios y orienta la búsqueda de datos.",delta:{agua:2,participacion:2,aprendizaje:8,bienestar:1}},
+    {title:"ABP · Fuentes",q:"¿Qué conjunto de fuentes conviene utilizar?",opts:[
+      ["Medidor, recibos, entrevistas y recorridos","📚"],["Solo videos de redes sociales","📱"],["Solo la opinión del docente","🗣️"]],correct:0,
+      explain:"Las fuentes diversas permiten comparar datos cuantitativos y cualitativos.",delta:{agua:4,participacion:4,aprendizaje:8,bienestar:1}},
+    {title:"ABP · Datos",q:"¿Dónde se concentra el mayor consumo?",opts:[
+      ["Sanitarios y bebederos","🚻"],["Biblioteca","📚"],["Cocina únicamente","🍽️"]],correct:0,
+      explain:"Sanitarios y bebederos concentran fugas y flujo continuo.",delta:{agua:8,participacion:1,aprendizaje:7,bienestar:2}},
+    {title:"ABP · Solución",q:"¿Qué solución responde mejor a los datos?",opts:[
+      ["Cerrar sanitarios","⛔"],["Reparar, ahorrar, ajustar horarios y monitorear","🛠️"],["Aplicar sanciones sin explicar","🧾"]],correct:1,
+      explain:"La solución actúa sobre infraestructura, hábitos y evaluación.",delta:{agua:12,participacion:5,aprendizaje:6,bienestar:7}}
+  ],
+  4:[
+    {title:"Aprendizaje Servicio · Acción directa",q:"¿Qué acción produce un beneficio inmediato?",opts:[
+      ["Reparar fugas e instalar dispositivos ahorradores","🔧"],["Cerrar sanitarios dos horas","🔒"],["Comprar adornos azules","🎨"]],correct:0,
+      explain:"La reparación atiende la causa sin limitar un servicio básico.",delta:{agua:17,participacion:3,aprendizaje:4,bienestar:7}},
+    {title:"Aprendizaje Servicio · Participación",q:"¿Cómo involucrar a los estudiantes?",opts:[
+      ["Campaña, brigadas de monitoreo y comunicación de datos","📣"],["Solo observar a los adultos","👀"],["Copiar definiciones sobre el agua","✍️"]],correct:0,
+      explain:"Los estudiantes investigan, actúan y comunican un servicio real.",delta:{agua:5,participacion:14,aprendizaje:9,bienestar:5}},
+    {title:"Aprendizaje Servicio · Comunidad",q:"¿Qué acción fortalece la continuidad?",opts:[
+      ["Taller práctico con familias y acuerdos de seguimiento","👨‍👩‍👧"],["Una ceremonia sin evaluación","🎤"],["Multas automáticas","🧾"]],correct:0,
+      explain:"Los acuerdos y capacidades compartidas sostienen el cambio.",delta:{agua:4,participacion:13,aprendizaje:6,bienestar:7}}
+  ],
+  5:[
+    {key:"roof",title:"STEAM · Área de captación",q:"Elige el techo con mayor captación viable.",opts:[
+      ["150 m²","📐"],["250 m²","📐"],["400 m²","📐"]],values:[150,250,400],correct:2,
+      explain:"Una mayor superficie permite captar más lluvia.",delta:{agua:2,participacion:1,aprendizaje:5,bienestar:1}},
+    {key:"rain",title:"STEAM · Escenario de lluvia",q:"Prueba el evento de diseño más favorable.",opts:[
+      ["15 mm","🌦️"],["30 mm","🌧️"],["45 mm","⛈️"]],values:[15,30,45],correct:2,
+      explain:"El volumen captado aumenta con los milímetros de lluvia.",delta:{agua:2,participacion:0,aprendizaje:5,bienestar:1}},
+    {key:"eff",title:"STEAM · Eficiencia",q:"Selecciona la eficiencia de un sistema bien diseñado.",opts:[
+      ["60%","⚙️"],["75%","⚙️"],["90%","⚙️"]],values:[.60,.75,.90],correct:2,
+      explain:"Filtros, conducción y mantenimiento elevan la eficiencia.",delta:{agua:3,participacion:0,aprendizaje:6,bienestar:1}},
+    {key:"tank",title:"STEAM · Almacenamiento",q:"¿Qué tanque evita perder la captación calculada?",opts:[
+      ["5,000 L","🛢️"],["10,000 L","🛢️"],["15,000 L","🛢️"]],values:[5000,10000,15000],correct:2,
+      explain:"El tanque debe ser suficiente para el volumen potencial.",delta:{agua:4,participacion:1,aprendizaje:5,bienestar:2}},
+    {key:"components",title:"STEAM · Seguridad",q:"¿Qué configuración completa el prototipo?",opts:[
+      ["Solo canaleta","➖"],["Canaleta y tanque","🔩"],["Filtro, primeras lluvias, tanque y rebosadero","🧰"]],values:["mínima","básica","completa"],correct:2,
+      explain:"El sistema completo protege la calidad del agua y la infraestructura.",delta:{agua:5,participacion:2,aprendizaje:7,bienestar:3}}
+  ]
+};
+
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function load(){try{return {...clone(initial),...JSON.parse(localStorage.getItem(STORAGE)||"{}")}}catch(e){return clone(initial)}}
+function save(){localStorage.setItem(STORAGE,JSON.stringify(state))}
+function loadCalibration(){
+  try{return {...clone(DEFAULT_CALIBRATION),...JSON.parse(localStorage.getItem(CALIB_STORAGE)||"{}")}}
+  catch(e){return clone(DEFAULT_CALIBRATION)}
+}
+function saveCalibration(){
+  localStorage.setItem(CALIB_STORAGE,JSON.stringify(calibration));
+  applyCalibrationStyles();
+  updateCalibrationUI();
+}
+function calibrationValue(option){
+  const value=calibration[option.key];
+  return `${value}${option.unit}`;
+}
+function applyCalibrationStyles(){
+  const horizontalFine=Number(calibration.horizontal)||0;
+  const horizontal=HORIZONTAL_BASE+horizontalFine;
+  const vertical=Number(calibration.vertical)||0;
+  const height=VERTICAL_BASE+(Number(calibration.height)||0);
+  const viewportScale=VIEWPORT_BASE_SCALE;
+  const zoom=IMAGE_BASE_SCALE*((Number(calibration.zoom)||100)/100);
+  const font=(1/VIEWPORT_BASE_SCALE)*((Number(calibration.font)||100)/100);
+
+  const targets=[document.documentElement,root];
+  targets.forEach(target=>{
+    target.style.setProperty("--left-eye-x",`${-horizontal}px`);
+    target.style.setProperty("--right-eye-x",`${horizontal}px`);
+    target.style.setProperty("--left-eye-y",`${height-vertical}px`);
+    target.style.setProperty("--right-eye-y",`${height+vertical}px`);
+    target.style.setProperty("--viewport-scale",viewportScale);
+    target.style.setProperty("--scene-zoom",zoom);
+
+    target.style.setProperty("--vr-title-size",`${Math.round(22*font)}px`);
+    target.style.setProperty("--vr-body-size",`${Math.round(15*font)}px`);
+    target.style.setProperty("--vr-small-size",`${Math.max(9,Math.round(11*font))}px`);
+    target.style.setProperty("--vr-target-title-size",`${Math.round(15*font)}px`);
+    target.style.setProperty("--vr-target-sub-size",`${Math.max(9,Math.round(11*font))}px`);
+    target.style.setProperty("--vr-hud-size",`${Math.max(9,Math.round(11*font))}px`);
+    target.style.setProperty("--vr-ind-size",`${Math.max(8,Math.round(9*font))}px`);
+    target.style.setProperty("--vr-sensor-size",`${Math.max(9,Math.round(10*font))}px`);
+  });
+}
+function updateCalibrationUI(){
+  const ids=["horizontal","vertical","height","zoom","font"];
+  ids.forEach(key=>{
+    const input=document.getElementById("cal"+key[0].toUpperCase()+key.slice(1));
+    const output=document.getElementById("cal"+key[0].toUpperCase()+key.slice(1)+"Out");
+    if(input)input.value=calibration[key];
+    if(output)output.textContent=(key==="zoom"||key==="font")?`${calibration[key]}%`:`${calibration[key]} px`;
+  });
+
+  const factor=.34;
+  const left=document.getElementById("previewLeft");
+  const right=document.getElementById("previewRight");
+  const physicalHorizontal=HORIZONTAL_BASE+(Number(calibration.horizontal)||0);
+  const physicalHeight=VERTICAL_BASE+(Number(calibration.height)||0);
+  const previewScale=VIEWPORT_BASE_SCALE*IMAGE_BASE_SCALE*((Number(calibration.zoom)||100)/100);
+  const font=(Number(calibration.font)||100)/100;
+  if(left){
+    left.style.transform=`translate(${-physicalHorizontal*factor}px, ${(physicalHeight-calibration.vertical)*factor}px) scale(${previewScale})`;
+    left.querySelector(".cal-sample").style.fontSize=`${Math.round(16*font)}px`;
+  }
+  if(right){
+    right.style.transform=`translate(${physicalHorizontal*factor}px, ${(physicalHeight+calibration.vertical)*factor}px) scale(${previewScale})`;
+    right.querySelector(".cal-sample").style.fontSize=`${Math.round(16*font)}px`;
+  }
+}
+function norm(a){while(a>180)a-=360;while(a<-180)a+=360;return a}
+function clamp(v){return Math.max(0,Math.min(100,v))}
+function applyDelta(d){Object.keys(d).forEach(k=>state.indicators[k]=clamp(state.indicators[k]+d[k]))}
+function currentQuestions(){return questions[state.level]||[]}
+
+const root=document.getElementById("vrRoot");
+const setup=document.getElementById("setup");
+
+let wakeLock=null;
+async function requestWakeLock(){
+  try{
+    if("wakeLock" in navigator){
+      wakeLock=await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release",()=>{wakeLock=null});
+    }
+  }catch(e){
+    wakeLock=null;
+  }
+}
+async function releaseWakeLock(){
+  try{
+    if(wakeLock){await wakeLock.release()}
+  }catch(e){}
+  wakeLock=null;
+}
+// Si el navegador quita el wake lock al minimizar/bloquear, lo recuperamos
+// automáticamente al volver, siempre que sigamos dentro del visor.
+document.addEventListener("visibilitychange",async()=>{
+  if(document.visibilityState==="visible"&&!wakeLock&&root.style.display!=="none"){
+    await requestWakeLock();
+  }
+});
+const calibrationStatus=document.getElementById("calibrationStatus");
+const mainMenuView=document.getElementById("mainMenuView");
+const calibrationMenuView=document.getElementById("calibrationMenuView");
+const openSettingsButton=document.getElementById("openSettings");
+const closeSettingsButton=document.getElementById("closeSettings");
+const saveCalibrationMenuButton=document.getElementById("saveCalibrationMenu");
+const activateSensorsButton=document.getElementById("activateSensors");
+const sensorSetupStatus=document.getElementById("sensorSetupStatus");
+
+function showMainMenu(){
+  calibrationMenuView.classList.remove("active");
+  mainMenuView.classList.add("active");
+  setup.scrollTop=0;
+}
+function openSettingsMenu(){
+  mainMenuView.classList.remove("active");
+  calibrationMenuView.classList.add("active");
+  updateCalibrationUI();
+  setup.scrollTop=0;
+}
+function closeSettingsMenu(){
+  saveCalibration();
+  showMainMenu();
+  if(calibrationStatus)calibrationStatus.textContent="Configuración guardada.";
+}
+openSettingsButton.addEventListener("click",openSettingsMenu);
+closeSettingsButton.addEventListener("click",closeSettingsMenu);
+saveCalibrationMenuButton.addEventListener("click",closeSettingsMenu);
+
+["horizontal","vertical","height","zoom","font"].forEach(key=>{
+  const id="cal"+key[0].toUpperCase()+key.slice(1);
+  const input=document.getElementById(id);
+  if(input)input.addEventListener("input",()=>{
+    calibration[key]=Number(input.value);
+    saveCalibration();
+    if(calibrationStatus)calibrationStatus.textContent="Calibración guardada.";
+  });
+});
+
+document.querySelectorAll("[data-cal-step]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    const key=button.dataset.calStep;
+    const dir=Number(button.dataset.dir);
+    const option=calibrationOptions.find(item=>item.key===key);
+    if(!option)return;
+    calibration[key]=Math.max(
+      option.min,
+      Math.min(option.max,Number(calibration[key])+dir*option.step)
+    );
+    saveCalibration();
+    if(calibrationStatus)calibrationStatus.textContent=`${option.label}: ${calibrationValue(option)}`;
+  });
+});
+
+document.getElementById("testCalibration").onclick=()=>startCalibration();
+document.getElementById("resetCalibration").onclick=()=>{
+  calibration=clone(DEFAULT_CALIBRATION);
+  saveCalibration();
+  if(calibrationStatus)calibrationStatus.textContent="Se restauraron los valores iniciales.";
+};
+
+document.querySelectorAll("[data-cal-command]").forEach(button=>{
+  const runCommand=event=>{
+    event.preventDefault();
+    const command=button.dataset.calCommand;
+    if(command==="up")changeCalibrationSelection(-1);
+    if(command==="down")changeCalibrationSelection(1);
+    if(command==="left")changeCalibrationParameter(-1);
+    if(command==="right")changeCalibrationParameter(1);
+    if(command==="save")exitCalibration();
+    if(command==="back")exitCalibration();
+    if(command==="reset"){
+      calibration=clone(DEFAULT_CALIBRATION);
+      saveCalibration();
+      render();
+    }
+  };
+  button.addEventListener("pointerdown",runCommand);
+});
+
+document.querySelectorAll("[data-game-command]").forEach(button=>{
+  button.addEventListener("pointerdown",event=>{
+    event.preventDefault();
+    if(calibrationMode)return;
+    const command=button.dataset.gameCommand;
+    if(command==="left")moveTouchSelection(-1);
+    if(command==="right")moveTouchSelection(1);
+    if(command==="select")selectTouchTarget();
+    if(command==="recenter")recenter();
+    if(command==="menu")exitToMenu();
+  });
+});
+
+async function exitToMenu(){
+  clearTimeout(feedbackTimer);
+  root.style.display="none";
+  root.className="";
+  setup.style.display="grid";
+  if(document.fullscreenElement){
+    try{await document.exitFullscreen()}catch(e){}
+  }
+  try{
+    if(screen.orientation?.unlock)screen.orientation.unlock();
+  }catch(e){}
+  await releaseWakeLock();
+}
+
+activateSensorsButton.addEventListener("click",async()=>{
+  await requestSensorPermission();
+});
+
+document.getElementById("enterVr").onclick=()=>start(true);
+document.getElementById("enterMono").onclick=()=>start(false);
+document.getElementById("reset").onclick=()=>{
+  if(confirm("¿Borrar todo el progreso del juego? La calibración del visor se conservará.")){
+    localStorage.removeItem(STORAGE);state=clone(initial);location.reload()
+  }
+};
+
+async function startCalibration(){
+  saveCalibration();
+  calibration=loadCalibration();
+  calibrationMode=true;
+  vrMode=true;
+  root.className="stereo calibration-mode";
+  root.style.display="grid";
+  setup.style.display="none";
+  applyCalibrationStyles();
+  requestAnimationFrame(applyCalibrationStyles);
+  try{
+    if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();
+  }catch(e){}
+  try{
+    if(screen.orientation?.lock)await screen.orientation.lock("landscape");
+  }catch(e){}
+  await requestWakeLock();
+  render();
+  ensureLoop();
+}
+
+async function exitCalibration(){
+  calibrationMode=false;
+  saveCalibration();
+  root.style.display="none";
+  root.className="";
+  setup.style.display="grid";
+  if(document.fullscreenElement){
+    try{await document.exitFullscreen()}catch(e){}
+  }
+  await releaseWakeLock();
+  updateCalibrationUI();
+  if(calibrationStatus)calibrationStatus.textContent="Calibración guardada. Puedes seguir ajustando o volver.";
+  openSettingsMenu();
+}
+
+async function start(stereo){
+  saveCalibration();
+  calibration=loadCalibration();
+  calibrationMode=false;
+  vrMode=stereo;
+
+  // Ambas solicitudes se lanzan dentro del mismo gesto del usuario.
+  const sensorPromise=requestSensorPermission();
+  const fullscreenPromise=(async()=>{
+    try{
+      if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();
+    }catch(e){}
+  })();
+
+  root.className=stereo?"stereo":"mono";
+  root.style.display=stereo?"grid":"block";
+  setup.style.display="none";
+  applyCalibrationStyles();
+  requestAnimationFrame(applyCalibrationStyles);
+
+  await sensorPromise;
+  await fullscreenPromise;
+
+  try{
+    if(screen.orientation?.lock)await screen.orientation.lock("landscape");
+  }catch(e){}
+  await requestWakeLock();
+  // Borrarla aquí dejaba el juego esperando un evento nuevo que algunos
+  // navegadores no envían hasta realizar un movimiento considerable.
+  if(sensorAlpha!=null)baseAlpha=sensorAlpha;
+  else baseAlpha=null;
+  manualOffset=0;
+  previousSensorAlpha=sensorAlpha;
+
+  if(state.phase==="intro")showIntro();
+  render();
+  ensureLoop();
+}
+
+function ensureLoop(){
+  if(loopRunning)return;
+  loopRunning=true;
+  requestAnimationFrame(loop);
+}
+
+function updateSensorStatus(message,state="info"){
+  if(sensorSetupStatus){
+    sensorSetupStatus.textContent=message;
+    sensorSetupStatus.style.color=
+      state==="ok"?"#55d98b":
+      state==="error"?"#ff8a8a":
+      state==="warn"?"#ffd166":"#c9e5e1";
+  }
+}
+
+function normalizeHeading(value){
+  if(!Number.isFinite(value))return null;
+  let result=value%360;
+  if(result<0)result+=360;
+  return result;
+}
+
+function headingDelta(previous,current){
+  if(previous==null||current==null)return 0;
+  let delta=current-previous;
+  while(delta>180)delta-=360;
+  while(delta<-180)delta+=360;
+  return delta;
+}
+
+function handleOrientationEvent(event){
+  if(event.alpha==null&&event.beta==null&&event.gamma==null)return;
+
+  lastRawOrientation={
+    alpha:event.alpha,
+    beta:event.beta,
+    gamma:event.gamma,
+    absolute:Boolean(event.absolute)
+  };
+
+  /*
+   * El método directo con alpha era el que funcionaba correctamente en el
+   * teléfono. webkitCompassHeading se utiliza como respaldo en WebKit.
+   */
+  const heading=normalizeHeading(
+    Number.isFinite(event.webkitCompassHeading)
+      ?event.webkitCompassHeading
+      :Number(event.alpha)
+  );
+
+  // Algunos dispositivos no entregan alpha. En orientación horizontal,
+  // gamma sirve como respaldo para detectar el giro lateral.
+  const fallbackGamma=Number(event.gamma);
+  const nextSensorValue=
+    heading!==null
+      ?heading
+      :(Number.isFinite(fallbackGamma)?fallbackGamma:null);
+
+  if(nextSensorValue===null)return;
+
+  const delta=headingDelta(previousSensorAlpha,nextSensorValue);
+  if(Math.abs(delta)>.03)detectedRotation+=Math.abs(delta);
+
+  previousSensorAlpha=nextSensorValue;
+  sensorAlpha=nextSensorValue;
+
+  if(baseAlpha==null)baseAlpha=nextSensorValue;
+
+  sensorOn=true;
+  orientationEventCount++;
+  lastOrientationEvent=performance.now();
+
+  if(orientationEventCount===1){
+    updateSensorStatus("Giroscopio activo. Mueve el celular horizontalmente.","ok");
+    render();
+  }else if(detectedRotation>1.2){
+    updateSensorStatus("Giroscopio funcionando: giro detectado.","ok");
+  }
+}
+
+function registerOrientationListeners(){
+  if(orientationListenersReady)return;
+  orientationListenersReady=true;
+  window.addEventListener("deviceorientation",handleOrientationEvent,true);
+  window.addEventListener("orientationchange",()=>{
+    // Conservar la última lectura y usarla como nuevo centro.
+    if(sensorAlpha!=null)baseAlpha=sensorAlpha;
+    manualOffset=0;
+    previousSensorAlpha=null;
+  },true);
+}
+
+async function requestSensorPermission(){
+  registerOrientationListeners();
+  orientationEventCount=0;
+  detectedRotation=0;
+  previousSensorAlpha=null;
+
+  try{
+    if(!window.isSecureContext){
+      sensorPermissionState="insecure";
+      sensorOn=false;
+      updateSensorStatus(
+        "⚠ El giroscopio no puede activarse porque el archivo se abrió como "+location.protocol+
+        "//... . Los navegadores exigen HTTPS para el sensor de orientación. "+
+        "Sube este archivo a un hosting con https (por ejemplo netlify.app o github.io) y ábrelo desde ese enlace.",
+        "error"
+      );
+      return false;
+    }
+
+    if(typeof DeviceOrientationEvent==="undefined"){
+      sensorPermissionState="unsupported";
+      sensorOn=false;
+      updateSensorStatus(
+        "Este navegador no expone eventos de orientación. Ábrelo desde Chrome/Edge y, de ser posible, desde una dirección HTTPS.",
+        "error"
+      );
+      return false;
+    }
+
+    if(typeof DeviceOrientationEvent.requestPermission==="function"){
+      const result=await DeviceOrientationEvent.requestPermission();
+      sensorPermissionState=result;
+      if(result!=="granted"){
+        sensorOn=false;
+        updateSensorStatus("Permiso del giroscopio rechazado. Revisa los permisos del navegador.","error");
+        return false;
+      }
+    }else{
+      sensorPermissionState="granted";
+    }
+
+    updateSensorStatus("Permiso concedido. Mueve el celular para comprobarlo.","ok");
+
+    setTimeout(()=>{
+      if(orientationEventCount===0){
+        updateSensorStatus(
+          "Permiso concedido, pero no llegan datos. Abre el juego desde Chrome/Edge; algunos navegadores bloquean sensores fuera de HTTPS.",
+          "warn"
+        );
+      }
+    },1800);
+
+    return true;
+  }catch(error){
+    sensorPermissionState="error";
+    sensorOn=false;
+    updateSensorStatus("No fue posible activar el giroscopio: "+error.message,"error");
+    return false;
+  }
+}
+
+async function enableOrientation(){
+  return requestSensorPermission();
+}
+
+function showIntro(){
+  introReady=false;locked=true;
+  setTimeout(()=>{introReady=true;locked=false;state.phase=state.level===1?"explore":"questions";save();render()},4200);
+}
+
+function levelTitle(){
+  return {
+    1:"Nivel 1 · Explorando la comunidad",
+    2:"Nivel 2 · Proyecto Comunitario ABPC",
+    3:"Nivel 3 · Resolviendo Problemas ABP",
+    4:"Nivel 4 · Aprendizaje Servicio",
+    5:"Nivel 5 · Laboratorio STEAM"
+  }[state.level]||"Misión completada";
+}
+
+function introText(){
+  return {
+    1:["Explora la comunidad","Gira la cabeza y conversa con seis personajes. Cada testimonio aporta una evidencia para construir el diagnóstico."],
+    2:["Proyecto Comunitario ABPC","Convierte el diagnóstico en un objetivo, un equipo y una organización con responsabilidades claras."],
+    3:["Aprendizaje Basado en Problemas","Formula preguntas, investiga, analiza datos y selecciona una solución sustentada."],
+    4:["Aprendizaje Servicio","Implementa acciones que enseñan mientras producen un beneficio real para la comunidad."],
+    5:["Laboratorio STEAM","Diseña un sistema de captación de lluvia. Fórmula: área × lluvia × eficiencia."]
+  }[state.level];
+}
+
+function getTargets(){
+  if(calibrationMode)return[];
+  if(locked||state.phase==="intro"||state.phase==="feedback"||state.phase==="dialog"||state.phase==="transition"||state.phase==="final")return[];
+  if(state.phase==="explore"){
+    const remaining=places.filter(p=>!state.visited.includes(p.id));
+    const key="explore-"+remaining.map(p=>p.id).join(",");
+    if(anchorKey!==key){anchorKey=key;revealedAt=performance.now();activeId=null;dwellStart=0;dwellPct=0}
+    // Los lugares restantes se agrupan alrededor del frente (0°) para no
+    // tener que recorrer todo el arco cuando ya se consultaron varios.
+    const n=remaining.length;
+    const step=26;
+    const start=-((n-1)/2)*step;
+    return remaining.map((p,i)=>({
+      id:"place-"+p.id,yaw:norm(start+i*step),icon:p.icon,title:p.title,sub:"Fija la mirada",kind:"place",data:p
+    }));
+  }
+  if(state.phase==="questions"){
+    const q=currentQuestions()[state.step];
+    if(!q)return[];
+    const key=`q-${state.level}-${state.step}`;
+    if(anchorKey!==key){
+      // Se desplaza el centro del grupo respecto a hacia dónde miras ahora
+      // mismo, para que ninguna opción quede exactamente bajo la mirada
+      // (evita seleccionar por accidente mientras lees la pregunta).
+      anchorKey=key;anchorYaw=norm(yaw+14);activeId=null;dwellStart=0;dwellPct=0;
+      revealedAt=performance.now();
+    }
+    if(optionOrderKey!==key){
+      optionOrderKey=key;
+      optionOrder=shuffleArray(q.opts.map((_,i)=>i));
+    }
+    const offsets=[-26,0,26];
+    return optionOrder.map((origIndex,slot)=>{
+      const o=q.opts[origIndex];
+      return {id:"opt-"+state.level+"-"+state.step+"-"+origIndex,yaw:norm(anchorYaw+offsets[slot]),icon:o[1],title:o[0],sub:"Seleccionar",kind:"option",index:origIndex};
+    });
+  }
+  if(state.phase==="continue"){
+    const key=`continue-${state.level}`;
+    if(anchorKey!==key){anchorKey=key;anchorYaw=norm(yaw+18);activeId=null;dwellStart=0;dwellPct=0;revealedAt=performance.now()}
+    return [{id:"continue",yaw:anchorYaw,icon:"➡️",title:state.level<5?"Continuar al siguiente nivel":"Ver resultado",sub:"Fija la mirada",kind:"continue"}];
+  }
+  return[];
+}
+
+
+
+function currentCalibrationOption(){
+  return calibrationOptions[calibrationIndex]||calibrationOptions[0];
+}
+function changeCalibrationParameter(direction){
+  const option=currentCalibrationOption();
+  const next=Number(calibration[option.key])+direction*option.step;
+  calibration[option.key]=Math.max(option.min,Math.min(option.max,next));
+  saveCalibration();
+  if(calibrationStatus){
+    calibrationStatus.textContent=`${option.label}: ${calibrationValue(option)}`;
+  }
+  render();
+}
+function changeCalibrationSelection(direction){
+  calibrationIndex=(calibrationIndex+direction+calibrationOptions.length)%calibrationOptions.length;
+  const option=currentCalibrationOption();
+  if(calibrationStatus){
+    calibrationStatus.textContent=`Ajustando: ${option.label}`;
+  }
+  render();
+}
+
+
+function sortedTargets(){
+  return getTargets().slice().sort((a,b)=>norm(a.yaw-yaw)-norm(b.yaw-yaw));
+}
+
+function nearestTarget(){
+  const targets=getTargets();
+  if(!targets.length)return null;
+  return targets
+    .map(target=>({target,distance:Math.abs(norm(target.yaw-yaw))}))
+    .sort((a,b)=>a.distance-b.distance)[0].target;
+}
+
+function centerTarget(target){
+  if(!target)return;
+  const delta=norm(target.yaw-yaw);
+  if(sensorAlpha!=null)manualOffset=norm(manualOffset+delta);
+  else yaw=target.yaw;
+  touchTargetId=target.id;
+  activeId=null;
+  dwellStart=0;
+  dwellPct=0;
+  updateTargets();
+}
+
+function moveTouchSelection(direction){
+  const targets=sortedTargets();
+  if(!targets.length)return;
+
+  let index=targets.findIndex(target=>target.id===touchTargetId);
+  if(index<0){
+    const nearest=nearestTarget();
+    index=Math.max(0,targets.findIndex(target=>nearest&&target.id===nearest.id));
+  }else{
+    index=(index+direction+targets.length)%targets.length;
+  }
+  centerTarget(targets[index]);
+}
+
+function selectTouchTarget(){
+  const targets=getTargets();
+  if(!targets.length)return;
+  let target=targets.find(item=>item.id===touchTargetId);
+  if(!target)target=nearestTarget();
+  if(!target)return;
+  centerTarget(target);
+  activate(target);
+}
+
+function activate(target){
+  if(locked||!target)return;
+  if(target.kind==="place") openDialogue(target.data);
+  if(target.kind==="option") answer(target.index);
+  if(target.kind==="continue") nextLevel();
+}
+
+function openDialogue(place){
+  locked=true;state.phase="dialog";save();render();
+  feedback={title:place.person,text:place.text,small:"Evidencia: "+place.evidence,icon:place.icon};
+  render();
+  clearTimeout(feedbackTimer);
+  feedbackTimer=setTimeout(()=>{
+    if(!state.visited.includes(place.id)){state.visited.push(place.id);state.score+=10}
+    feedback=null;locked=false;
+    if(state.visited.length===places.length){state.phase="questions";state.step=0;state.score+=20}
+    else state.phase="explore";
+    save();render();
+  },5200);
+}
+
+function answer(index){
+  const q=currentQuestions()[state.step];if(!q)return;
+  locked=true;state.phase="feedback";
+  const ok=index===q.correct;
+  if(ok){
+    state.score+=20;applyDelta(q.delta);
+    if(state.level===5 && q.key)state.steam[q.key]=q.values[index];
+    feedback={title:"Decisión pertinente",text:q.explain,small:"La misión continúa.",icon:"✅",ok:true};
+  }else{
+    state.wrong++;state.score=Math.max(0,state.score-5);
+    feedback={title:"Revisa la decisión",text:q.explain,small:"La pregunta volverá a mostrarse.",icon:"⚠️",ok:false};
+  }
+  save();render();
+  clearTimeout(feedbackTimer);
+  feedbackTimer=setTimeout(()=>{
+    feedback=null;locked=false;
+    if(ok){
+      state.step++;
+      if(state.step>=currentQuestions().length) completeLevel();
+      else state.phase="questions";
+    }else state.phase="questions";
+    save();render();
+  },3600);
+}
+
+function completeLevel(){
+  if(state.level===4)state.improved=true;
+  if(state.level===5){
+    const s=state.steam;
+    const potential=Math.round((s.roof||0)*(s.rain||0)*(s.eff||0));
+    const stored=Math.min(potential,s.tank||0);
+    const valid=stored>=10000 && s.components==="completa";
+    if(valid){state.score+=50;applyDelta({agua:12,participacion:4,aprendizaje:12,bienestar:5})}
+    feedback={
+      title:valid?"Prototipo funcional":"Prototipo incompleto",
+      text:valid?`Captación potencial: ${potential.toLocaleString("es-MX")} L. Almacenamiento útil: ${stored.toLocaleString("es-MX")} L.`:
+      `La simulación produjo ${stored.toLocaleString("es-MX")} L. Revisa la capacidad o los componentes.`,
+      small:valid?"La meta de 10,000 litros fue superada.":"El nivel se repetirá para mejorar el diseño.",
+      icon:valid?"🌧️":"🧪",ok:valid
+    };
+    locked=true;state.phase="feedback";render();
+    setTimeout(()=>{
+      feedback=null;locked=false;
+      if(valid){state.phase="continue";state.step=0}
+      else{state.phase="questions";state.step=0;state.steam={roof:null,rain:null,eff:null,tank:null,components:null}}
+      save();render();
+    },4800);
+    return;
+  }
+  state.phase="continue";state.step=0;state.score+=25;save();render();
+}
+
+function nextLevel(){
+  if(state.level>=5){finish();return}
+  state.level++;state.step=0;state.phase="intro";save();showIntro();render();
+}
+
+function finish(){
+  state.completed=true;state.phase="final";state.score+=30;save();render();
+}
+
+function indicatorsHTML(){
+  const labels={agua:"Agua",participacion:"Particip.",aprendizaje:"Aprendiz.",bienestar:"Bienestar"};
+  return Object.entries(state.indicators).map(([k,v])=>`
+    <div class="ind"><div class="ind-top"><span>${labels[k]}</span><span>${v}%</span></div>
+    <div class="bar"><span style="width:${v}%"></span></div></div>`).join("");
+}
+
+function calibrationSceneHTML(){
+  const option=currentCalibrationOption();
+  return `<div class="calibrated-content">
+    <div class="calibration-scene"></div>
+    <div class="calibration-readout">
+      <strong>${option.label}</strong>
+      <span>${calibrationValue(option)}</span>
+    </div>
+    <div class="calibration-mark"></div>
+    <div class="calibration-center-dot"></div>
+    <div class="calibration-instructions">
+      Usa los botones táctiles: ▲ ▼ cambian el ajuste y ◀ ▶ modifican el valor.
+      <br>Guardar aplica la calibración. El valor horizontal 0 incluye la corrección base del visor.
+    </div>
+  </div>`;
+}
+
+function sceneHTML(eye){
+  const intro=introText();
+  let message="";
+  if(state.phase==="intro"){
+    message=`<div class="message fade"><h2>${intro[0]}</h2><p>${intro[1]}</p><small>La misión comenzará automáticamente.</small></div>`;
+  }else if(state.phase==="dialog"&&feedback){
+    message=`<div class="message fade"><h2>${feedback.icon} ${feedback.title}</h2><p>${feedback.text}</p><small>${feedback.small}</small></div>`;
+  }else if(state.phase==="feedback"&&feedback){
+    message=`<div class="message fade"><h2>${feedback.icon} ${feedback.title}</h2><p>${feedback.text}</p><small>${feedback.small}</small></div>`;
+  }else if(state.phase==="questions"){
+    const q=currentQuestions()[state.step];
+    if(q)message=`<div class="message fade"><h2>${q.title}</h2><p>${q.q}</p><small>Gira la cabeza y mantén la mirada, o utiliza los botones táctiles.</small></div>`;
+  }else if(state.phase==="continue"){
+    message=`<div class="message fade"><h2>Etapa completada</h2><p>Los indicadores de la comunidad cambiaron según tus decisiones.</p><small>Apunta con la cabeza o usa los botones táctiles y selecciona.</small></div>`;
+  }else if(state.phase==="final"){
+    const avg=Math.round(Object.values(state.indicators).reduce((a,b)=>a+b,0)/4);
+    message=`<div class="message fade" style="top:13%"><h2>🏅 Docente agente de transformación</h2>
+      <p>Completaste las cinco misiones articulando diagnóstico, ABPC, ABP, Aprendizaje Servicio y STEAM.</p>
+      <small>Puntaje: ${state.score} · Impacto global: ${avg}% · Errores corregidos: ${state.wrong}</small>
+      <small style="margin-top:12px;color:#fff">El proyecto reduce el desperdicio mediante infraestructura, participación, análisis y experimentación.</small></div>`;
+  }
+  return `<div class="calibrated-content">
+    <div class="scene-layer">
+      <div class="hill h1"></div><div class="hill h2"></div>
+      <div class="cloud c1">☁️</div><div class="cloud c2">☁️</div>
+      <div class="school-bg">${state.improved?"🏫🌳":"🏫"}</div>
+    </div>
+    <div class="hud"><div class="hud-card level">${levelTitle()}</div><div class="hud-card score">${state.score} pts</div></div>
+    ${message}
+    <div class="targets"></div>
+    <div class="reticle" style="--dwell:${dwellPct}%"></div>
+    <div class="indicators">${indicatorsHTML()}</div>
+    <div class="sensor">${sensorOn
+      ?`◉ Giroscopio activo · giro ${Math.round(detectedRotation)}°`
+      :"Giroscopio sin datos · usa los botones táctiles"}</div>
+  </div>`;
+}
+
+function render(){
+  root.classList.toggle("improved",state.improved&&!calibrationMode);
+  applyCalibrationStyles();
+  document.querySelectorAll(".eye").forEach(eye=>{
+    eye.innerHTML=calibrationMode?calibrationSceneHTML():sceneHTML(Number(eye.dataset.eye))
+  });
+  if(!calibrationMode)updateTargets();
+}
+
+function updateTargets(){
+  if(calibrationMode)return;
+  const targets=getTargets();
+  let best=null,bestAbs=999;
+  document.querySelectorAll(".eye").forEach(eye=>{
+    const box=eye.querySelector(".targets");if(!box)return;
+    box.innerHTML="";
+    targets.forEach(t=>{
+      const diff=norm(t.yaw-yaw);
+      if(Math.abs(diff)>52)return;
+      const x=50+(diff/92)*100;
+      const y=58;
+      const el=document.createElement("div");
+      el.className="world-target"+(Math.abs(diff)<6?" near":"")+(touchTargetId===t.id?" touch-selected":"");
+      el.style.left=x+"%";el.style.top=y+"%";
+      el.innerHTML=`<span class="target-icon">${t.icon}</span><span class="target-title">${t.title}</span><span class="target-sub">${t.sub}</span>`;
+      box.appendChild(el);
+      const ad=Math.abs(diff);
+      if(ad<bestAbs){bestAbs=ad;best=t}
+    });
+  });
+  const newActive=bestAbs<6?best:null;
+  const inGrace=(performance.now()-revealedAt)<REVEAL_GRACE;
+
+  if(!newActive||inGrace){
+    activeId=null;dwellStart=0;dwellPct=0;
+  }else if(activeId!==newActive.id){
+    activeId=newActive.id;dwellStart=performance.now();dwellPct=0;
+  }else{
+    dwellPct=Math.min(100,(performance.now()-dwellStart)/1600*100);
+    if(dwellPct>=100){
+      activeId=null;dwellStart=0;dwellPct=0;activate(newActive);
+    }
+  }
+  document.querySelectorAll(".reticle").forEach(r=>r.style.setProperty("--dwell",dwellPct+"%"));
+}
+
+function loop(){
+  if(sensorAlpha!=null&&baseAlpha!=null&&!dragging){
+    // Ganancia ligera para que el desplazamiento sea visible dentro del visor.
+    yaw=norm((baseAlpha-sensorAlpha)*1.15+manualOffset);
+  }
+
+  if(sensorOn&&lastOrientationEvent&&performance.now()-lastOrientationEvent>3500){
+    sensorOn=false;
+  }
+
+  updateTargets();
+  requestAnimationFrame(loop);
+}
+
+function recenter(){
+  if(sensorAlpha!=null)baseAlpha=sensorAlpha;
+  manualOffset=0;yaw=0;anchorKey="";activeId=null;dwellStart=0;dwellPct=0;updateTargets();
+}
+
+root.addEventListener("pointerdown",e=>{dragging=true;lastX=e.clientX});
+root.addEventListener("pointermove",e=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastX;lastX=e.clientX;
+  if(sensorAlpha!=null)manualOffset=norm(manualOffset-dx*.24);
+  else yaw=norm(yaw-dx*.24);
+  updateTargets();
+});
+root.addEventListener("pointerup",()=>dragging=false);
+root.addEventListener("pointercancel",()=>dragging=false);
+root.addEventListener("click",()=>{
+  if(calibrationMode)return;
+  const t=getTargets().map(x=>({x,d:Math.abs(norm(x.yaw-yaw))})).sort((a,b)=>a.d-b.d)[0];
+  if(t&&t.d<8){
+    activate(t.x);
+  }
+});
+root.addEventListener("dblclick",()=>calibrationMode?exitCalibration():recenter());
+window.addEventListener("keydown",event=>{
+  const key=(event.key||"").toLowerCase();
+
+  if(calibrationMode){
+    if(key==="arrowup"){event.preventDefault();changeCalibrationSelection(-1)}
+    if(key==="arrowdown"){event.preventDefault();changeCalibrationSelection(1)}
+    if(key==="arrowleft"){event.preventDefault();changeCalibrationParameter(-1)}
+    if(key==="arrowright"){event.preventDefault();changeCalibrationParameter(1)}
+    if(key==="enter"||key==="escape"){event.preventDefault();exitCalibration()}
+    return;
+  }
+
+  if(key==="arrowleft"){event.preventDefault();moveTouchSelection(-1)}
+  if(key==="arrowright"){event.preventDefault();moveTouchSelection(1)}
+  if(key==="enter"||key===" "){event.preventDefault();selectTouchTarget()}
+  if(key==="escape"||key==="backspace"){event.preventDefault();recenter()}
+  if(key==="m"){event.preventDefault();exitToMenu()}
+});
+
+registerOrientationListeners();
+if(!window.isSecureContext){
+  updateSensorStatus(
+    "⚠ Abriste el archivo como "+location.protocol+"//... . El giroscopio necesita HTTPS: sube el archivo a un hosting como netlify.app o github.io y ábrelo desde ese enlace.",
+    "error"
+  );
+}
+applyCalibrationStyles();
+updateCalibrationUI();
+if(state.completed){state.phase="final";state.level=5}
+})();
+</script>
+</body>
+</html>
